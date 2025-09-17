@@ -53,38 +53,78 @@ function MainBodyMesh() {
 	return mesh;
 }
 
-const wingSpan = 5;
-const wingThickness = 0.1; // thickness as a fraction of chord (e.g., 0.15 = 15%)
-const chordShrink = 0.5; // how much the chord reduces towards the wingtips (0 to 1)
-const chordMax = 0.75; // maximum chord length at the wing root
+function wingsFunc(
+	wingSpan,
+	wingThickness, // thickness as a fraction of chord (e.g., 0.15 = 15%)
+	chordMax, // maximum chord length at the wing root
+	chordShrink // how much the chord reduces towards the wingtips (0 to 1)
+) {
+	return function (u, v, target) {
+		// Wing lies on the xz plane, with thickness in y
+		const x = wingSpan * (v - 0.5);
+		const chord = chordMax * (1 - Math.abs(2 * v - 1) * chordShrink);
+		const chordPos = Math.abs(2 * u - 1); // 0 at center, 1 at edges
+		const z = chord * (0.5 - chordPos);
 
-function mainwing(u, v, target) {
-	// Wing lies on the xz plane, with thickness in y
-	const x = wingSpan * (v - 0.5);
-	const chord = chordMax * (1 - Math.abs(2 * v - 1) * chordShrink);
-	const chordPos = Math.abs(2 * u - 1); // 0 at center, 1 at edges
-	const z = chord * (0.5 - chordPos);
+		const maxThickness = wingThickness * chord;
+		// max at center, 0 at edges
+		const thicknessProfile = maxThickness * (1 - chordPos * chordPos);
 
-	const maxThickness = wingThickness * chord;
-	// max at center, 0 at edges
-	const thicknessProfile = maxThickness * (1 - chordPos * chordPos);
+		// If u < 0.5, lower surface; if u >= 0.5, upper surface
+		const y = u < 0.5 ? thicknessProfile / 2 : -thicknessProfile / 2;
 
-	// If u < 0.5, lower surface; if u >= 0.5, upper surface
-	const y = u < 0.5 ? thicknessProfile / 2 : -thicknessProfile / 2;
+		// hacky caps for the wings
+		//on the last unit, make the wing end in a point
+		if (v === 1 || v === 0) {
+			target.set(x, 0, z);
+			return;
+		}
 
-	target.set(x, y, z);
+		target.set(x, y, z);
+	};
 }
 
 function MainWingMesh() {
-	const geometry = new ParametricGeometry(mainwing, 20, 20);
+	const mainWingSpan = 5;
+	const mainWingThickness = 0.1;
+	const mainChordShrink = 0.5;
+	const mainChordMax = 0.75;
+
+	const geometry = new ParametricGeometry(
+		wingsFunc(mainWingSpan, mainWingThickness, mainChordMax, mainChordShrink),
+		20,
+		20
+	);
 	const material = new THREE.MeshPhongMaterial({
 		color: 0x8ac926,
 		flatShading: true,
-		side: THREE.DoubleSide,
+		//side: THREE.DoubleSide,
 	});
 	const mesh = new THREE.Mesh(geometry, material);
-	mesh.rotation.x = Math.PI;
+	//mesh.rotation.x = Math.PI;
 	mesh.position.set(0, 0.15, -0.25);
+	return mesh;
+}
+
+function TailWingMesh() {
+	const tailWingSpan = 1;
+	const tailWingThickness = 0.05;
+	const tailChordShrink = 0.5;
+	const tailChordMax = 0.5;
+
+	const geometry = new ParametricGeometry(
+		wingsFunc(tailWingSpan, tailWingThickness, tailChordMax, tailChordShrink),
+		20,
+		20
+	);
+	const material = new THREE.MeshPhongMaterial({
+		color: 0xff6f91,
+		flatShading: true,
+		//side: THREE.DoubleSide,
+	});
+	const mesh = new THREE.Mesh(geometry, material);
+	//mesh.rotation.x = Math.PI;
+	mesh.position.set(0, 0.23, 1.2);
 	return mesh;
 }
 
@@ -96,6 +136,9 @@ export function AirplaneGeometry() {
 
 	const mainWing = MainWingMesh();
 	airplane.add(mainWing);
+
+	const tailWing = TailWingMesh();
+	airplane.add(tailWing);
 
 	return airplane;
 }
