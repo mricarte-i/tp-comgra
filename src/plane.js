@@ -53,26 +53,38 @@ function MainBodyMesh() {
 	return mesh;
 }
 
-const windSpan = 8;
+const wingSpan = 5;
+const wingThickness = 0.1; // thickness as a fraction of chord (e.g., 0.15 = 15%)
+const chordShrink = 0.5; // how much the chord reduces towards the wingtips (0 to 1)
+const chordMax = 0.75; // maximum chord length at the wing root
 
 function mainwing(u, v, target) {
-	// the wing should be extruded along the x axis
-	// the side rofile from the xz plane is a tear drop shape, the pointy end is at the back
-	// Wing lies flat on the xy plane
-	const x = windSpan * (v - 0.5); // span: -windSpan/2 to +windSpan/2
-	const chord = 1.5 * (1 - Math.abs(2 * v - 1) * 0.8); // chord length at this span position
-	const z = chord * (0.5 - Math.abs(2 * u - 1)); // chord: 0 to chord
-	const y = 0; // flat on xy plane
+	// Wing lies on the xz plane, with thickness in y
+	const x = wingSpan * (v - 0.5);
+	const chord = chordMax * (1 - Math.abs(2 * v - 1) * chordShrink);
+	const chordPos = Math.abs(2 * u - 1); // 0 at center, 1 at edges
+	const z = chord * (0.5 - chordPos);
+
+	const maxThickness = wingThickness * chord;
+	// max at center, 0 at edges
+	const thicknessProfile = maxThickness * (1 - chordPos * chordPos);
+
+	// If u < 0.5, lower surface; if u >= 0.5, upper surface
+	const y = u < 0.5 ? thicknessProfile / 2 : -thicknessProfile / 2;
 
 	target.set(x, y, z);
 }
 
 function MainWingMesh() {
 	const geometry = new ParametricGeometry(mainwing, 20, 20);
-	const material = new THREE.MeshPhongMaterial({ color: 0x8ac926, flatShading: true });
+	const material = new THREE.MeshPhongMaterial({
+		color: 0x8ac926,
+		flatShading: true,
+		side: THREE.DoubleSide,
+	});
 	const mesh = new THREE.Mesh(geometry, material);
-	//mesh.rotation.y = Math.PI / 2;
-	//mesh.position.set(-1, 0, 0);
+	mesh.rotation.x = Math.PI;
+	mesh.position.set(0, 0.15, -0.25);
 	return mesh;
 }
 
