@@ -43,8 +43,8 @@ function onResize() {
 setupThreeJs();
 BaseScene(scene);
 
-const plane = AirplaneGeometry();
-scene.add(plane);
+const { airplane, updateFanRotation } = AirplaneGeometry();
+scene.add(airplane);
 
 // chase cam setup
 const camChasePlane = new THREE.PerspectiveCamera(
@@ -54,7 +54,7 @@ const camChasePlane = new THREE.PerspectiveCamera(
   10000
 );
 // Cámara: montada al avión (detrás y arriba)
-plane.add(camChasePlane);
+airplane.add(camChasePlane);
 camChasePlane.position.set(0, 5, 5);
 camChasePlane.lookAt(new THREE.Vector3(0, 0, 0));
 
@@ -66,12 +66,12 @@ const camCockpit = new THREE.PerspectiveCamera(
   10000
 );
 // Cámara: montada al avión (detrás y arriba)
-plane.add(camCockpit);
+airplane.add(camCockpit);
 camCockpit.position.set(0, 0.5, -0.5);
 camCockpit.lookAt(new THREE.Vector3(0, 1, -10));
 
 // Controlador estable con minY = 2
-const controller = new AirplaneController(plane, {
+const controller = new AirplaneController(airplane, {
   maxSpeed: 120,
   accelResponse: 2.2,
   drag: 0.015,
@@ -152,6 +152,7 @@ function animate() {
   // clamp por si se pausa el tab
   const dt = Math.min(0.05, clock.getDelta());
   controller.update(dt);
+  updateFanRotation(clock.elapsedTime, controller.getStatus().speed);
   updateHUD();
   updateHelp();
   renderer.render(scene, cameras[mainCamera]);

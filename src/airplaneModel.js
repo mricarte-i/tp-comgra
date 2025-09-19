@@ -53,37 +53,6 @@ function MainBodyMesh() {
   return mesh;
 }
 
-function wingsFunc(
-  wingSpan,
-  wingThickness, // thickness as a fraction of chord (e.g., 0.15 = 15%)
-  chordMax, // maximum chord length at the wing root
-  chordShrink // how much the chord reduces towards the wingtips (0 to 1)
-) {
-  return function (u, v, target) {
-    // Wing lies on the xz plane, with thickness in y
-    const x = wingSpan * (v - 0.5);
-    const chord = chordMax * (1 - Math.abs(2 * v - 1) * chordShrink);
-    const chordPos = Math.abs(2 * u - 1); // 0 at center, 1 at edges
-    const z = chord * (0.5 - chordPos);
-
-    const maxThickness = wingThickness * chord;
-    // max at center, 0 at edges
-    const thicknessProfile = maxThickness * (1 - chordPos * chordPos);
-
-    // If u < 0.5, lower surface; if u >= 0.5, upper surface
-    const y = u < 0.5 ? thicknessProfile / 2 : -thicknessProfile / 2;
-
-    // hacky caps for the wings
-    //on the last unit, make the wing end in a point
-    if (v === 1 || v === 0) {
-      target.set(x, 0, z);
-      return;
-    }
-
-    target.set(x, y, z);
-  };
-}
-
 function newWingsFunc(
   wingSpan = 5,
   teardropThickness = 0.02,
@@ -198,6 +167,63 @@ function TallTailWingMesh() {
   return mesh;
 }
 
+function engineFunc(u, v, target) {
+  // A simple cylinder for the engine
+  const r = 0.2;
+  const h = 0.6;
+  let x = r * Math.cos(2 * Math.PI * u);
+  let z = h * v - h / 2;
+  let y = r * Math.sin(2 * Math.PI * u);
+
+  // Tail taper (back)
+  const vTailStart = 1 - 0.2 / h;
+  if (v > vTailStart) {
+    let tailTaper = 1 - (v - vTailStart) / (1 - vTailStart);
+    tailTaper = Math.max(0.2, Math.min(1, tailTaper));
+    x *= tailTaper;
+    y *= tailTaper;
+
+    // Move tail end upwards along the spine
+    // This adds an offset to z that goes from 0 at vTailStart to r at v=1
+    //const tailUp = (r * (v - vTailStart)) / (1 - vTailStart);
+    //y += tailUp;
+  }
+
+  target.set(x, y, z);
+}
+
+function EngineMesh(color = 0x555555) {
+  // A simple cylinder for the engine
+  const geometry = new ParametricGeometry(engineFunc, 20, 20);
+  const material = new THREE.MeshPhongMaterial({
+    color,
+    //side: THREE.DoubleSide,
+    flatShading: true,
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  return mesh;
+}
+
+function FanBlades(color = 0x333333) {
+  const engGroup = new THREE.Group();
+
+  // A few shapes for the fan blades
+  const bladeGeometry = new THREE.BoxGeometry(0.05, 0.02, 0.5);
+  const bladeMaterial = new THREE.MeshPhongMaterial({
+    color,
+    //side: THREE.DoubleSide,
+    flatShading: true,
+  });
+  for (let i = 0; i < 3; i++) {
+    const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
+    blade.position.set(0, 0, 0);
+    blade.rotation.y = (i * 2 * Math.PI) / 3;
+    blade.rotation.x = Math.PI / 2;
+    engGroup.add(blade);
+  }
+  return engGroup;
+}
+
 export function AirplaneGeometry() {
   const airplane = new THREE.Group();
 
@@ -213,9 +239,29 @@ export function AirplaneGeometry() {
   const tallTailWing = TallTailWingMesh();
   airplane.add(tallTailWing);
 
-  [mainbody, mainWing, tailWing, tallTailWing].forEach(m => {
+  const en1 = EngineMesh(0xdd3333);
+  en1.position.set(-1, 0, 0);
+  airplane.add(en1);
+  const en2 = EngineMesh(0x3333dd);
+  en2.position.set(1, 0, 0);
+  airplane.add(en2);
+
+  const fan1 = FanBlades(0xdc143c);
+  fan1.position.set(-1, 0, -0.32);
+  airplane.add(fan1);
+  const fan2 = FanBlades(0x1e90ff);
+  fan2.position.set(1, 0, -0.32);
+  airplane.add(fan2);
+
+  [mainbody, mainWing, tailWing, tallTailWing, en1, en2].forEach(m => {
     m.castShadow = m.receiveShadow = true;
   });
 
-  return airplane;
+  function updateFanRotation(time, speed) {
+    const angle = (time * speed) % (2 * Math.PI);
+    fan1.rotation.z = angle;
+    fan2.rotation.z = angle;
+  }
+
+  return { airplane, updateFanRotation };
 }
