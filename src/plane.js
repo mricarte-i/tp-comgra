@@ -11,8 +11,8 @@ function mainbody(u, v, target) {
 	// Cylinder parameters
 	const r = bodyDiameter / 2;
 	let x = r * Math.cos(2 * Math.PI * u);
-	let y = bodyLength * v - bodyLength / 2;
-	let z = r * Math.sin(2 * Math.PI * u);
+	let z = bodyLength * v - bodyLength / 2;
+	let y = r * Math.sin(2 * Math.PI * u);
 
 	// Nose taper (front)
 	const vNose = noseLength / bodyLength;
@@ -20,7 +20,7 @@ function mainbody(u, v, target) {
 		let noseTaper = 1 - (vNose - v) / vNose;
 		noseTaper = Math.max(0, Math.min(1, noseTaper));
 		x *= noseTaper;
-		z *= noseTaper;
+		y *= noseTaper;
 	}
 
 	// Tail taper (back)
@@ -29,12 +29,12 @@ function mainbody(u, v, target) {
 		let tailTaper = 1 - (v - vTailStart) / (1 - vTailStart);
 		tailTaper = Math.max(0, Math.min(1, tailTaper));
 		x *= tailTaper;
-		z *= tailTaper;
+		y *= tailTaper;
 
 		// Move tail end upwards along the spine
 		// This adds an offset to z that goes from 0 at vTailStart to r at v=1
 		const tailUp = (r * (v - vTailStart)) / (1 - vTailStart);
-		z -= tailUp;
+		y += tailUp;
 	}
 
 	target.set(x, y, z);
@@ -49,7 +49,7 @@ function MainBodyMesh() {
 	});
 	const mesh = new THREE.Mesh(geometry, material);
 	mesh.scale.set(0.5, 0.5, 0.5);
-	mesh.rotation.x = Math.PI / 2;
+	//mesh.rotation.x = Math.PI / 2;
 	return mesh;
 }
 
@@ -84,14 +84,52 @@ function wingsFunc(
 	};
 }
 
+function newWingsFunc(wingSpan = 5, teardropThickness = 0.02, teardropLength = 0.7, chordMax = 0.75) {
+	//const wingSpan = 5;
+	//const teardropThickness = 0.02;
+	//const teardropLength = 0.7;
+	//const chordMax = 0.75;
+	return function (u, v, target) {
+		const a = teardropThickness;
+		const b = teardropLength;
+		// v goes from 0 to 1 along the span of the wing
+		// t goes from 0 to 2pi
+		const t = u * 2 * Math.PI;
+		//the formula for a teardrop curve
+		//https://mathworld.wolfram.com/TeardropCurve.html
+		//x = 2acos(t) - asin(2t)
+		//y = bsin(t)
+		const x2d = 2 * a * Math.cos(t) - a * Math.sin(2 * t);
+		const y2d = b * Math.sin(t);
+
+		// calculte y,z = x2d, y2d, such that we extrude the teardrop along the x axis, flat along the xz plane
+		const x = wingSpan * (v - 0.5);
+		let z = y2d;
+		let y = x2d;
+
+		const shrinkFactor = 0.5 + 0.5 * (1 - Math.abs(2 * v - 1)); // 1 at center, 0.5 at edges
+		const chord = chordMax * shrinkFactor;
+		//scale the wing down based on the chord length
+		z *= chord;
+		y *= chord;
+
+		//move z back a bit proportionally to the chord length
+		z -= 0.75 * chord;
+
+		// set the target
+
+		target.set(x, y, z);
+	};
+}
+
 function MainWingMesh() {
-	const mainWingSpan = 5;
-	const mainWingThickness = 0.1;
-	const mainChordShrink = 0.5;
-	const mainChordMax = 0.75;
+	const wingSpan = 5;
+	const teardropThickness = 0.02;
+	const teardropLength = 0.7;
+	const chordMax = 0.75;
 
 	const geometry = new ParametricGeometry(
-		wingsFunc(mainWingSpan, mainWingThickness, mainChordMax, mainChordShrink),
+		newWingsFunc(wingSpan, teardropThickness, teardropLength, chordMax),
 		20,
 		20
 	);
@@ -102,21 +140,17 @@ function MainWingMesh() {
 	});
 	const mesh = new THREE.Mesh(geometry, material);
 	//mesh.rotation.x = Math.PI;
-	mesh.position.set(0, 0.15, -0.25);
+	mesh.position.set(0, 0.15, 0.15);
 	return mesh;
 }
 
 function TailWingMesh() {
-	const tailWingSpan = 1;
-	const tailWingThickness = 0.05;
-	const tailChordShrink = 0.5;
-	const tailChordMax = 0.5;
+	const wingSpan = 1;
+	const wingThickness = 0.02;
+	const wingLength = 0.5;
+	const chordMax = 0.5;
 
-	const geometry = new ParametricGeometry(
-		wingsFunc(tailWingSpan, tailWingThickness, tailChordMax, tailChordShrink),
-		20,
-		20
-	);
+	const geometry = new ParametricGeometry(newWingsFunc(wingSpan, wingThickness, wingLength, chordMax), 20, 20);
 	const material = new THREE.MeshPhongMaterial({
 		color: 0xff6f91,
 		flatShading: true,
@@ -124,7 +158,7 @@ function TailWingMesh() {
 	});
 	const mesh = new THREE.Mesh(geometry, material);
 	//mesh.rotation.x = Math.PI;
-	mesh.position.set(0, 0.23, 1.2);
+	mesh.position.set(0, 0.21, 1.5);
 	return mesh;
 }
 
