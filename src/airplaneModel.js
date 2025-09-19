@@ -108,7 +108,12 @@ function MainWingMesh() {
   const chordMax = 0.75;
 
   const geometry = new ParametricGeometry(
-    newWingsFunc(wingSpan, teardropThickness, teardropLength, chordMax),
+    newWingsFunc(
+      wingSpan,
+      teardropThickness,
+      teardropLength,
+      chordMax
+    ),
     20,
     20
   );
@@ -152,7 +157,13 @@ function TallTailWingMesh() {
   const chordMax = 0.5;
 
   const geometry = new ParametricGeometry(
-    newWingsFunc(wingSpan, wingThickness, wingLength, chordMax, true),
+    newWingsFunc(
+      wingSpan,
+      wingThickness,
+      wingLength,
+      chordMax,
+      true
+    ),
     20,
     20
   );
@@ -167,40 +178,57 @@ function TallTailWingMesh() {
   return mesh;
 }
 
-function engineFunc(u, v, target) {
-  // A simple cylinder for the engine
-  const r = 0.2;
-  const h = 0.6;
-  let x = r * Math.cos(2 * Math.PI * u);
-  let z = h * v - h / 2;
-  let y = r * Math.sin(2 * Math.PI * u);
+function engineFunc(
+  length = 0.6,
+  radius = 0.2,
+  tailStart = 0.4
+) {
+  return (u, v, target) => {
+    // A simple cylinder for the engine
+    const r = radius;
+    const h = length;
+    let x = r * Math.cos(2 * Math.PI * u);
+    //let z = h * v - h / 2;
+    let z = h * v; // start at 0
+    let y = r * Math.sin(2 * Math.PI * u);
 
-  // Tail taper (back)
-  const vTailStart = 1 - 0.2 / h;
-  if (v > vTailStart) {
-    let tailTaper = 1 - (v - vTailStart) / (1 - vTailStart);
-    tailTaper = Math.max(0.2, Math.min(1, tailTaper));
-    x *= tailTaper;
-    y *= tailTaper;
+    // Tail taper (back)
+    //const vTailStart = 1 - 0.2 / h;
+    const vTailStart = tailStart / length;
+    if (v > vTailStart) {
+      let tailTaper = 1 - (v - vTailStart) / (1 - vTailStart);
+      tailTaper = Math.max(0.2, Math.min(1, tailTaper));
+      x *= tailTaper;
+      y *= tailTaper;
 
-    // Move tail end upwards along the spine
-    // This adds an offset to z that goes from 0 at vTailStart to r at v=1
-    //const tailUp = (r * (v - vTailStart)) / (1 - vTailStart);
-    //y += tailUp;
-  }
+      // Move tail end upwards along the spine
+      // This adds an offset to z that goes from 0 at vTailStart to r at v=1
+      //const tailUp = (r * (v - vTailStart)) / (1 - vTailStart);
+      //y += tailUp;
+    }
 
-  target.set(x, y, z);
+    target.set(x, y, z);
+  };
 }
-
-function EngineMesh(color = 0x555555) {
+function EngineMesh(
+  color = 0x555555,
+  length = 0.6,
+  radius = 0.2,
+  tailStart = 0.4
+) {
   // A simple cylinder for the engine
-  const geometry = new ParametricGeometry(engineFunc, 20, 20);
+  const geometry = new ParametricGeometry(
+    engineFunc(length, radius, tailStart),
+    20,
+    20
+  );
   const material = new THREE.MeshPhongMaterial({
     color,
     //side: THREE.DoubleSide,
     flatShading: true,
   });
   const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(0, -length, 0);
   return mesh;
 }
 
@@ -239,28 +267,111 @@ export function AirplaneGeometry() {
   const tallTailWing = TallTailWingMesh();
   airplane.add(tallTailWing);
 
-  const en1 = EngineMesh(0xdd3333);
-  en1.position.set(-1, 0, 0);
+  //primary engines
+  const primaryEngineXOffset = 0.75;
+  const primaryEngineZOffset = -0.9;
+  const primaryEngineYOffset = -0.03;
+  const primaryEngineRadius = 0.2;
+  const primaryEngineLength = 1;
+  const primaryEngineTailStart = 0.6;
+  const en1 = EngineMesh(
+    0xdd3333,
+    primaryEngineLength,
+    primaryEngineRadius,
+    primaryEngineTailStart
+  );
+  en1.position.set(
+    -primaryEngineXOffset,
+    primaryEngineYOffset,
+    primaryEngineZOffset
+  );
   airplane.add(en1);
-  const en2 = EngineMesh(0x3333dd);
-  en2.position.set(1, 0, 0);
+  const en2 = EngineMesh(
+    0x3333dd,
+    primaryEngineLength,
+    primaryEngineRadius,
+    primaryEngineTailStart
+  );
+  en2.position.set(
+    primaryEngineXOffset,
+    primaryEngineYOffset,
+    primaryEngineZOffset
+  );
   airplane.add(en2);
 
   const fan1 = FanBlades(0xdc143c);
-  fan1.position.set(-1, 0, -0.32);
+  fan1.position.set(
+    -primaryEngineXOffset,
+    primaryEngineYOffset,
+    primaryEngineZOffset - 0.02
+  );
   airplane.add(fan1);
   const fan2 = FanBlades(0x1e90ff);
-  fan2.position.set(1, 0, -0.32);
+  fan2.position.set(
+    primaryEngineXOffset,
+    primaryEngineYOffset,
+    primaryEngineZOffset - 0.02
+  );
   airplane.add(fan2);
 
-  [mainbody, mainWing, tailWing, tallTailWing, en1, en2].forEach(m => {
-    m.castShadow = m.receiveShadow = true;
-  });
+  //secondary engines
+  const secondaryEngineXOffset = 1.75;
+  const secondaryEngineZOffset = -0.6;
+  const secondaryEngineLength = 0.8;
+  const secondaryEngineRadius = 0.2;
+  const secondaryEngineTailStart = 0.4;
+  const en3 = EngineMesh(
+    0xffa500,
+    secondaryEngineLength,
+    secondaryEngineRadius,
+    secondaryEngineTailStart
+  );
+  en3.position.set(
+    -secondaryEngineXOffset,
+    primaryEngineYOffset,
+    secondaryEngineZOffset
+  );
+  airplane.add(en3);
+  const en4 = EngineMesh(
+    0x00a5ff,
+    secondaryEngineLength,
+    secondaryEngineRadius,
+    secondaryEngineTailStart
+  );
+  en4.position.set(
+    secondaryEngineXOffset,
+    primaryEngineYOffset,
+    secondaryEngineZOffset
+  );
+  airplane.add(en4);
+
+  const fan3 = FanBlades(0xffd700);
+  fan3.position.set(
+    -secondaryEngineXOffset,
+    primaryEngineYOffset,
+    secondaryEngineZOffset - 0.02
+  );
+  airplane.add(fan3);
+  const fan4 = FanBlades(0x00ffff);
+  fan4.position.set(
+    secondaryEngineXOffset,
+    primaryEngineYOffset,
+    secondaryEngineZOffset - 0.02
+  );
+  airplane.add(fan4);
+
+  [mainbody, mainWing, tailWing, tallTailWing, en1, en2].forEach(
+    m => {
+      m.castShadow = m.receiveShadow = true;
+    }
+  );
 
   function updateFanRotation(time, speed) {
     const angle = (time * speed) % (2 * Math.PI);
     fan1.rotation.z = angle;
     fan2.rotation.z = angle;
+    fan3.rotation.z = angle;
+    fan4.rotation.z = angle;
   }
 
   return { airplane, updateFanRotation };

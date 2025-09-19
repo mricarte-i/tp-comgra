@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AirplaneController, AIRPLANE_KEYS } from './airplaneController.js';
 import { AirplaneGeometry } from './airplaneModel.js';
 import { BaseScene } from './baseScene.js';
+import { createGroundBufferManual } from './terrain.js';
 let scene, camGral, renderer, container; //sceneManager;
 
 let mainCamera = 0;
@@ -22,12 +23,48 @@ function setupThreeJs() {
     0.1,
     1000
   );
-  camGral.position.set(0, 6, 6);
+  camGral.position.set(250, 10, 0);
   camGral.lookAt(0, 0, 0);
 
   const controls = new OrbitControls(camGral, renderer.domElement);
 
   window.addEventListener('resize', onResize);
+  window.addEventListener('beforeunload', () => {
+    // Save camera position and rotation
+    localStorage.setItem(
+      'cameraPosition',
+      JSON.stringify(camGral.position.toArray())
+    );
+    localStorage.setItem(
+      'cameraRotation',
+      JSON.stringify(camGral.rotation.toArray())
+    );
+
+    // If using OrbitControls or similar, save its target
+    if (controls && controls.target) {
+      localStorage.setItem(
+        'controlsTarget',
+        JSON.stringify(controls.target.toArray())
+      );
+    }
+  });
+  // Restore camera position and rotation
+  const savedPosition = localStorage.getItem('cameraPosition');
+  const savedRotation = localStorage.getItem('cameraRotation');
+  const savedTarget = localStorage.getItem('controlsTarget');
+  if (savedPosition) {
+    const posArray = JSON.parse(savedPosition);
+    camGral.position.fromArray(posArray);
+  }
+  if (savedRotation) {
+    const rotArray = JSON.parse(savedRotation);
+    camGral.rotation.fromArray(rotArray);
+  }
+  if (controls && controls.target && savedTarget) {
+    const targetArray = JSON.parse(savedTarget);
+    controls.target.fromArray(targetArray);
+    controls.update();
+  }
   onResize();
 }
 
@@ -42,25 +79,40 @@ function onResize() {
 
 setupThreeJs();
 BaseScene(scene);
+//const ground = createGround();
+const ground = createGroundBufferManual(
+  undefined,
+  undefined,
+  undefined,
+  256,
+  256,
+  mesh => {
+    mesh.position.set(0, 0, 0);
+    scene.add(mesh);
+  }
+);
+//ground.position.set(0, 0, 0);
+//scene.add(ground);
 
 const { airplane, updateFanRotation } = AirplaneGeometry();
+const airplaneSpawn = new THREE.Vector3(200, 2, 0);
 scene.add(airplane);
 
 // chase cam setup
 const camChasePlane = new THREE.PerspectiveCamera(
-  60,
+  90,
   window.innerWidth / window.innerHeight,
   0.1,
   10000
 );
 // Cámara: montada al avión (detrás y arriba)
 airplane.add(camChasePlane);
-camChasePlane.position.set(0, 5, 5);
+camChasePlane.position.set(0, 3, 5);
 camChasePlane.lookAt(new THREE.Vector3(0, 0, 0));
 
 // cockpit cam setup
 const camCockpit = new THREE.PerspectiveCamera(
-  90,
+  120,
   window.innerWidth / window.innerHeight,
   0.1,
   10000
@@ -99,7 +151,7 @@ const controller = new AirplaneController(airplane, {
 });
 // Estado inicial en el origen (y=2), mirando -Z, throttle=0
 controller.setTransform({
-  position: new THREE.Vector3(0, 2, 0),
+  position: airplaneSpawn,
   euler: new THREE.Euler(0, 0, 0, 'YXZ'), // heading=0 → forward -Z
   throttle: 0,
 });
@@ -131,10 +183,12 @@ window.addEventListener('keydown', e => {
   // *** NUEVO: tecla R para resetear a situación de despegue ***
   if (e.code === 'KeyR') {
     controller.setTransform({
-      position: new THREE.Vector3(0, 2, 0),
+      position: airplaneSpawn,
       euler: new THREE.Euler(0, 0, 0, 'YXZ'), // nivelado, nariz hacia -Z
       throttle: 0,
     });
+    camGral.position.set(250, 10, 0);
+    camGral.lookAt(0, 0, 0);
   }
   if (e.key === '1') {
     mainCamera = 0;
