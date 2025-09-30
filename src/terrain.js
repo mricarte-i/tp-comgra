@@ -107,7 +107,7 @@ export function createGroundBufferManual(
       const idx = (py * img.width + px) * 4;
       let heightValue = data[idx] / 255; // Use red channel
       if (heightValue < lowFilter) {
-        console.log('Low height value filtered:', heightValue);
+        //console.log('Low height value filtered:', heightValue);
         heightValue = -10;
       }
       pos.setY(i, heightValue * scale); // Scale as needed

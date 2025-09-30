@@ -101,7 +101,7 @@ createGroundBufferManual(
   30,
   0.01,
   mesh => {
-    mesh.position.set(0, 0, 0);
+    mesh.position.set(0, -2, 0);
     scene.add(mesh);
   }
 );
@@ -115,8 +115,15 @@ const water = new THREE.Mesh(
   })
 );
 water.rotation.x = -Math.PI / 2;
-water.position.y = 0;
+water.position.y = -2;
 scene.add(water);
+
+const hangar = new THREE.Mesh(
+  new THREE.BoxGeometry(20, 10, 20),
+  new THREE.MeshPhongMaterial({ color: 0x888888 })
+);
+hangar.position.set(130, -3.5, 64);
+scene.add(hangar);
 
 const { airplane, updateFanRotation, updateTopLight } =
   AirplaneGeometry();
@@ -180,18 +187,7 @@ controller.setTransform({
   euler: new THREE.Euler(0, 0, 0, 'YXZ'), // heading=0 → forward -Z
   throttle: 0,
 });
-// --- HUD (opcional, si tenés un <div id="hud"> en tu HTML) ---
-const hudEl = document.getElementById('hud');
-function updateHUD() {
-  if (!hudEl) return;
-  const s = controller.getStatus();
-  hudEl.innerHTML =
-    `Vel: ${s.speed.toFixed(1)} u/s<br>` +
-    `Throttle: ${(controller.getEnginePower() * 100) | 0}%<br>` +
-    `Pitch/Bank: ${s.pitchDeg.toFixed(0)}° / ${s.bankDeg.toFixed(
-      0
-    )}°`;
-}
+
 const helpEl = document.getElementById('help');
 function updateHelp() {
   if (!helpEl) return;
@@ -227,6 +223,72 @@ window.addEventListener('keydown', e => {
 });
 
 cameras = [camGral, camChasePlane, camCockpit];
+
+// --- Raycast Axis Helper ---
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const axisHelper = new THREE.AxesHelper(5);
+scene.add(axisHelper);
+axisHelper.visible = false;
+window.addEventListener('mousemove', event => {
+  // calculate mouse position in normalized device coordinates
+  // (-1 to +1) for both components
+  mouse.x =
+    (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+  mouse.y =
+    -(event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+
+  // update the picking ray with the camera and mouse position
+  raycaster.setFromCamera(mouse, cameras[mainCamera]);
+
+  // calculate objects intersecting the picking ray
+  const intersects = raycaster.intersectObjects(scene.children);
+  let closest = null;
+  for (let i = 0; i < intersects.length; i++) {
+    if (
+      intersects[i].object !== axisHelper &&
+      (intersects[i].distance < closest?.distance || !closest)
+    ) {
+      closest = intersects[i];
+    }
+  }
+  if (closest) {
+    axisHelper.position.copy(closest.point);
+    axisHelper.visible = true;
+  } else {
+    axisHelper.visible = false;
+  }
+  /*
+  if (intersects.length > 0) {
+    axisHelper.position.copy(intersects[0].point);
+    axisHelper.visible = true;
+  } else {
+    axisHelper.visible = false;
+  }
+    */
+});
+// --- HUD (opcional, si tenés un <div id="hud"> en tu HTML) ---
+const hudEl = document.getElementById('hud');
+function updateHUD() {
+  if (!hudEl) return;
+  const s = controller.getStatus();
+  hudEl.innerHTML =
+    `Vel: ${s.speed.toFixed(1)} u/s<br>` +
+    `Throttle: ${(controller.getEnginePower() * 100) | 0}%<br>` +
+    `Pitch/Bank: ${s.pitchDeg.toFixed(0)}° / ${s.bankDeg.toFixed(
+      0
+    )}°<br>` +
+    `Raycast: ${
+      axisHelper.visible
+        ? `x:${axisHelper.position.x.toFixed(
+            1
+          )} y:${axisHelper.position.y.toFixed(
+            1
+          )} z:${axisHelper.position.z.toFixed(1)}`
+        : '---'
+    }<br>`;
+}
+
 // --- Animación ---
 const clock = new THREE.Clock();
 function animate() {
