@@ -40,6 +40,8 @@ export function createGroundBufferManual(
   height = 500,
   widthSegments = 256,
   heightSegments = 256,
+  scale = 20,
+  lowFilter = 10,
   callback
 ) {
   const geometry = new THREE.BufferGeometry();
@@ -73,7 +75,10 @@ export function createGroundBufferManual(
     'position',
     new THREE.Float32BufferAttribute(vertices, 3)
   );
-  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.setAttribute(
+    'uv',
+    new THREE.Float32BufferAttribute(uvs, 2)
+  );
   geometry.setIndex(indices);
 
   // Load heightmap using TextureLoader
@@ -86,7 +91,12 @@ export function createGroundBufferManual(
     canvas.height = img.height;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(0, 0, img.width, img.height).data;
+    const data = ctx.getImageData(
+      0,
+      0,
+      img.width,
+      img.height
+    ).data;
 
     const pos = geometry.getAttribute('position');
     for (let i = 0; i < pos.count; i++) {
@@ -95,8 +105,12 @@ export function createGroundBufferManual(
       const px = Math.floor(u * (img.width - 1));
       const py = Math.floor(v * (img.height - 1));
       const idx = (py * img.width + px) * 4;
-      const heightValue = data[idx] / 255; // Use red channel
-      pos.setY(i, heightValue * 20); // Scale as needed
+      let heightValue = data[idx] / 255; // Use red channel
+      if (heightValue < lowFilter) {
+        console.log('Low height value filtered:', heightValue);
+        heightValue = -10;
+      }
+      pos.setY(i, heightValue * scale); // Scale as needed
     }
     pos.needsUpdate = true;
 

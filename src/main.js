@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { AirplaneController, AIRPLANE_KEYS } from './airplaneController.js';
+import {
+  AirplaneController,
+  AIRPLANE_KEYS,
+} from './airplaneController.js';
 import { AirplaneGeometry } from './airplaneModel.js';
 import { BaseScene } from './baseScene.js';
 import { createGroundBufferManual } from './terrain.js';
@@ -26,7 +29,10 @@ function setupThreeJs() {
   camGral.position.set(250, 10, 0);
   camGral.lookAt(0, 0, 0);
 
-  const controls = new OrbitControls(camGral, renderer.domElement);
+  const controls = new OrbitControls(
+    camGral,
+    renderer.domElement
+  );
 
   window.addEventListener('resize', onResize);
   window.addEventListener('beforeunload', () => {
@@ -74,27 +80,46 @@ function onResize() {
     cam.aspect = container.offsetWidth / container.offsetHeight;
     cam.updateProjectionMatrix();
   }
-  renderer.setSize(container.offsetWidth, container.offsetHeight);
+  renderer.setSize(
+    container.offsetWidth,
+    container.offsetHeight
+  );
 }
 
 setupThreeJs();
+
+//axis helper and default lights
 BaseScene(scene);
-//const ground = createGround();
-const ground = createGroundBufferManual(
+
+//TODO: better scene management
+createGroundBufferManual(
   undefined,
   undefined,
   undefined,
   256,
   256,
+  30,
+  0.01,
   mesh => {
     mesh.position.set(0, 0, 0);
     scene.add(mesh);
   }
 );
-//ground.position.set(0, 0, 0);
-//scene.add(ground);
+const water = new THREE.Mesh(
+  new THREE.PlaneGeometry(10000, 10000),
+  new THREE.MeshPhongMaterial({
+    color: 0x0044ff,
+    //transparent: true,
+    //opacity: 0.6,
+    //side: THREE.DoubleSide,
+  })
+);
+water.rotation.x = -Math.PI / 2;
+water.position.y = 0;
+scene.add(water);
 
-const { airplane, updateFanRotation } = AirplaneGeometry();
+const { airplane, updateFanRotation, updateTopLight } =
+  AirplaneGeometry();
 const airplaneSpawn = new THREE.Vector3(200, 2, 0);
 scene.add(airplane);
 
@@ -163,7 +188,9 @@ function updateHUD() {
   hudEl.innerHTML =
     `Vel: ${s.speed.toFixed(1)} u/s<br>` +
     `Throttle: ${(controller.getEnginePower() * 100) | 0}%<br>` +
-    `Pitch/Bank: ${s.pitchDeg.toFixed(0)}° / ${s.bankDeg.toFixed(0)}°`;
+    `Pitch/Bank: ${s.pitchDeg.toFixed(0)}° / ${s.bankDeg.toFixed(
+      0
+    )}°`;
 }
 const helpEl = document.getElementById('help');
 function updateHelp() {
@@ -206,7 +233,21 @@ function animate() {
   // clamp por si se pausa el tab
   const dt = Math.min(0.05, clock.getDelta());
   controller.update(dt);
-  updateFanRotation(clock.elapsedTime, controller.getStatus().speed);
+  updateFanRotation(
+    clock.elapsedTime,
+    controller.getStatus().speed
+  );
+  updateTopLight(
+    clock.elapsedTime,
+    20 * 0.0001 * controller.getStatus().speed,
+    mainCamera === 4
+      ? 0xff0000
+      : mainCamera === 5
+      ? 0x00ff00
+      : mainCamera === 6
+      ? 0x0000ff
+      : 0xffffff
+  );
   updateHUD();
   updateHelp();
   renderer.render(scene, cameras[mainCamera]);

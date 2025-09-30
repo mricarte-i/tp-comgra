@@ -45,7 +45,7 @@ function MainBodyMesh() {
   const material = new THREE.MeshPhongMaterial({
     color: 0x2194ce,
     side: THREE.DoubleSide,
-    flatShading: true,
+    //flatShading: true,
   });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.scale.set(0.5, 0.5, 0.5);
@@ -94,6 +94,12 @@ function newWingsFunc(
 
     //move z back a bit proportionally to the chord length
     z -= 0.75 * chord;
+
+    //end caps
+    if (v === 0 || v === 1) {
+      y = 0;
+      z = 0;
+    }
 
     // set the target
 
@@ -205,6 +211,12 @@ function engineFunc(
       // This adds an offset to z that goes from 0 at vTailStart to r at v=1
       //const tailUp = (r * (v - vTailStart)) / (1 - vTailStart);
       //y += tailUp;
+    }
+
+    //end caps
+    if (v === 0 || v === 1) {
+      y = 0;
+      z = 0;
     }
 
     target.set(x, y, z);
@@ -366,6 +378,30 @@ export function AirplaneGeometry() {
     }
   );
 
+  const headLight = new THREE.PointLight(0xffdd55, 50);
+  airplane.add(headLight);
+  headLight.position.set(0, -0.5, 2);
+
+  const wingLightL = new THREE.PointLight(0x00aaff, 30);
+  airplane.add(wingLightL);
+  wingLightL.position.set(-2.5, 0.1, 0.1);
+  const wingLightR = new THREE.PointLight(0xffaa00, 30);
+  airplane.add(wingLightR);
+  wingLightR.position.set(2.5, 0.1, 0.1);
+
+  const topLight = new THREE.PointLight(0xff0000, 10);
+  airplane.add(topLight);
+  topLight.position.set(0, 0.5, -1.25);
+
+  function updateTopLight(time, intensity, color) {
+    topLight.intensity = intensity
+      ? intensity * (Math.sin(time * 10) * 0.5 + 0.5)
+      : topLight.intensity;
+    topLight.color = color
+      ? new THREE.Color(color)
+      : topLight.color;
+  }
+
   function updateFanRotation(time, speed) {
     const angle = (time * speed) % (2 * Math.PI);
     fan1.rotation.z = angle;
@@ -374,5 +410,5 @@ export function AirplaneGeometry() {
     fan4.rotation.z = angle;
   }
 
-  return { airplane, updateFanRotation };
+  return { airplane, updateFanRotation, updateTopLight };
 }
