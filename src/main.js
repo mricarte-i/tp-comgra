@@ -7,6 +7,7 @@ import {
 import { AirplaneGeometry } from './airplaneModel.js';
 import { BaseScene } from './baseScene.js';
 import { createGroundBufferManual } from './terrain.js';
+import { BoatModel } from './boat.js';
 let scene, camGral, renderer, container; //sceneManager;
 
 let mainCamera = 0;
@@ -115,8 +116,58 @@ const water = new THREE.Mesh(
   })
 );
 water.rotation.x = -Math.PI / 2;
-water.position.y = -2;
+water.position.y = -1;
 scene.add(water);
+
+function triangleGeo() {
+  // Define the vertices of the triangle
+  const vertices = new Float32Array([
+    -1.0,
+    -1.0,
+    0.0, // Vertex 0
+    1.0,
+    -1.0,
+    0.0, // Vertex 1
+    0.0,
+    1.0,
+    0.0, // Vertex 2
+  ]);
+
+  // Create a BufferGeometry
+  const geometry = new THREE.BufferGeometry();
+
+  // Set the position attribute
+  geometry.setAttribute(
+    'position',
+    new THREE.BufferAttribute(vertices, 3)
+  );
+
+  return geometry;
+}
+
+function windWakerWaves() {
+  const wavesMat = new THREE.MeshPhongMaterial({
+    color: 0x55aaff,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: 0.6,
+    emissive: 0x66bbff,
+    emissiveIntensity: 0.3,
+    //wireframe: true,
+  });
+  const group = new THREE.Group();
+  const m1 = new THREE.Mesh(triangleGeo(), wavesMat);
+  const m2 = new THREE.Mesh(triangleGeo(), wavesMat);
+  group.add(m1);
+  m1.rotation.set(Math.PI / 2, Math.PI / 4, Math.PI / 4);
+  group.add(m2);
+  m2.rotation.set(Math.PI / 2, -Math.PI / 4, -Math.PI / 4);
+  return group;
+}
+
+const waves = windWakerWaves();
+scene.add(waves);
+waves.position.set(200, 1, 0);
 
 const hangar = new THREE.Mesh(
   new THREE.BoxGeometry(20, 10, 20),
@@ -129,6 +180,11 @@ const { airplane, updateFanRotation, updateTopLight } =
   AirplaneGeometry();
 const airplaneSpawn = new THREE.Vector3(200, 2, 0);
 scene.add(airplane);
+
+const { pivot, updateTurret } = BoatModel();
+pivot.position.set(214, -1, 1);
+pivot.scale.set(0.5, 0.5, 0.5);
+scene.add(pivot);
 
 // chase cam setup
 const camChasePlane = new THREE.PerspectiveCamera(
@@ -258,14 +314,6 @@ window.addEventListener('mousemove', event => {
   } else {
     axisHelper.visible = false;
   }
-  /*
-  if (intersects.length > 0) {
-    axisHelper.position.copy(intersects[0].point);
-    axisHelper.visible = true;
-  } else {
-    axisHelper.visible = false;
-  }
-    */
 });
 // --- HUD (opcional, si tenés un <div id="hud"> en tu HTML) ---
 const hudEl = document.getElementById('hud');
@@ -290,6 +338,31 @@ function updateHUD() {
 }
 
 // --- Animación ---
+function updateWindWakerWaves(time) {
+  // whenever the airplane is near the water, waves should
+  // be scaled up, if going very fast, they should be
+  // very big, if going slow, they should be small
+  const dist = airplane.position.distanceTo(water.position);
+  const speed = controller.getStatus().speed;
+  const scale = Math.min(
+    Math.max(0, 30 - dist) * 0.1 + speed * 0.05,
+    10
+  );
+  //also, lets use time and make the waves jiggle a bit
+  // based on speed, but not too much
+  const waveMotion =
+    0.75 + 0.25 * Math.sin(time * 3 + speed * 0.5);
+  //position waves at airplane x,z but at water y
+  waves.position.set(
+    airplane.position.x,
+    water.position.y,
+    airplane.position.z
+  );
+  //waves.rotation.y = airplane.rotation.y;
+  waves.quaternion.copy(airplane.quaternion);
+  //final scale
+  waves.scale.setScalar(scale * waveMotion);
+}
 const clock = new THREE.Clock();
 function animate() {
   // clamp por si se pausa el tab
@@ -312,6 +385,8 @@ function animate() {
   );
   updateHUD();
   updateHelp();
+  updateWindWakerWaves(clock.elapsedTime);
+  updateTurret(dt, clock.elapsedTime);
   renderer.render(scene, cameras[mainCamera]);
   requestAnimationFrame(animate);
 }
