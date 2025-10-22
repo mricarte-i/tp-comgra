@@ -259,13 +259,23 @@ const camOrbitBoat = new THREE.PerspectiveCamera(
   10000
 );
 // Cámara: orbitando al bote
-camOrbitBoat.position.set(pivot.position);
-pivot.add(camOrbitBoat);
+//camOrbitBoat.position.set(pivot.position);
+//pivot.add(camOrbitBoat);
+const camOrbitBoatOffset = new THREE.Vector3(0, 10, 30);
+camOrbitBoat.position
+  .copy(pivot.position)
+  .add(camOrbitBoatOffset);
+scene.add(camOrbitBoat);
+
 const camOrbitBoatControls = new OrbitControls(
   camOrbitBoat,
   renderer.domElement
 );
-camOrbitBoatControls.target.set(pivot);
+// initialize controls target to boat world position
+const initialTarget = new THREE.Vector3();
+pivot.getWorldPosition(initialTarget);
+camOrbitBoatControls.target.copy(initialTarget);
+camOrbitBoatControls.update();
 
 // chase cam setup
 const camChaseBoat = new THREE.PerspectiveCamera(
@@ -390,7 +400,7 @@ function updateWindWakerWaves(time) {
 const path = new THREE.CatmullRomCurve3(
   [
     new THREE.Vector3(47, -1, 223),
-    new THREE.Vector3(-117, -1, 127),
+    new THREE.Vector3(-91, -1, 167),
     new THREE.Vector3(-225, -1, 117),
     new THREE.Vector3(-259, -1, -11),
     new THREE.Vector3(-259, -1, -123),
@@ -399,8 +409,8 @@ const path = new THREE.CatmullRomCurve3(
     new THREE.Vector3(125, -1, -187),
     new THREE.Vector3(226, -1, -121),
     new THREE.Vector3(229, -1, -37),
-    new THREE.Vector3(209, -1, 54),
-    new THREE.Vector3(145, -1, 54),
+    new THREE.Vector3(249, -1, 54),
+    new THREE.Vector3(203, -1, 96),
     new THREE.Vector3(144, -1, 180),
   ],
   true,
@@ -408,14 +418,36 @@ const path = new THREE.CatmullRomCurve3(
   0.5
 );
 
+// place spheres at path points for visualization
+const sphereMat = new THREE.MeshBasicMaterial({
+  color: 0xff0000,
+});
+for (let i = 0; i < path.points.length; i++) {
+  const sp = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 8, 8),
+    sphereMat
+  );
+  // change color of each sphere
+  sp.material = sphereMat.clone();
+  sp.material.color.setHSL(i / path.points.length, 1, 0.5);
+  console.log(
+    'path point:',
+    path.points[i],
+    'color',
+    sp.material.color
+  );
+  sp.position.copy(path.points[i]);
+  scene.add(sp);
+}
+
 let pathTime = 0;
 function updateBoat(dt) {
   pathTime += dt;
   const speed = 0.05; // Adjust speed as needed
   const t = (pathTime * speed) % 1; // Loop t between 0 and 1
   const position = path.getPointAt(t);
-  //const tangent = path.getTangentAt(t).normalize();
 
+  // set boat position
   pivot.position.copy(position);
 
   // orient the boat using the path tangent (yaw only) ---
@@ -435,31 +467,24 @@ function updateBoat(dt) {
       tangent
     );
 
-    // Apply quaternion to the pivot (instant). If you want smoothing, slerp instead.
+    // Apply quaternion to the pivot (instant).
     pivot.quaternion.copy(q);
-
-    // If the boat model appears rotated by 90deg, try:
-    // pivot.rotateY(Math.PI / 2);
-    // or switch modelForward to (0,0,-1) above.
   }
 
   // update orbit controls target to boat position
   const worldPos = new THREE.Vector3();
   pivot.getWorldPosition(worldPos);
-  const direction = new THREE.Vector3();
-  pivot.getWorldDirection(direction);
 
-  const distance = 30;
-  const targetPosition = new THREE.Vector3()
-    .copy(worldPos)
-    .add(direction.multiplyScalar(distance));
-  //camOrbitBoat.position.copy(targetPosition);
+  // move the orbit camera so it follows the boat ---
+  // keep a fixed world-offset (camOrbitBoatOffset defined earlier)
+  const desiredCamPos = worldPos.clone().add(camOrbitBoatOffset);
+
+  // Optionally smooth the camera movement (tweak damping)
+  const damping = Math.min(1, dt * 2); // larger = snappier
+  camOrbitBoat.position.lerp(desiredCamPos, damping);
+
   camOrbitBoatControls.target.copy(worldPos);
   camOrbitBoatControls.update();
-
-  //console.log(camOrbitBoat.position, camOrbitBoatControls);
-
-  // update chase cam
 }
 
 const clock = new THREE.Clock();
