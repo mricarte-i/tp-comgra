@@ -92,7 +92,9 @@ setupThreeJs();
 //axis helper and default lights
 BaseScene(scene);
 
-//TODO: better scene management
+//TODO: use LoadingManager for all assets
+//TODO: better scene management (so we don't just call everything here in main.js)
+
 createGroundBufferManual(
   undefined,
   undefined,
@@ -181,11 +183,6 @@ const { airplane, updateFanRotation, updateTopLight } =
 const airplaneSpawn = new THREE.Vector3(200, 2, 0);
 scene.add(airplane);
 
-const { pivot, updateTurret } = BoatModel();
-pivot.position.set(214, -1, 1);
-pivot.scale.set(0.5, 0.5, 0.5);
-scene.add(pivot);
-
 // chase cam setup
 const camChasePlane = new THREE.PerspectiveCamera(
   90,
@@ -244,6 +241,44 @@ controller.setTransform({
   throttle: 0,
 });
 
+////////////////////////////////////////////////
+//
+// Destructor  - boat
+//
+/////////////////////////////////////////////////
+const { pivot, updateTurret } = BoatModel();
+pivot.position.set(214, -1, 1);
+pivot.scale.set(0.5, 0.5, 0.5);
+scene.add(pivot);
+
+// orbit cam setup
+const camOrbitBoat = new THREE.PerspectiveCamera(
+  90,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  10000
+);
+// Cámara: orbitando al bote
+camOrbitBoat.position.set(pivot.position);
+pivot.add(camOrbitBoat);
+const camOrbitBoatControls = new OrbitControls(
+  camOrbitBoat,
+  renderer.domElement
+);
+camOrbitBoatControls.target.set(pivot);
+
+// chase cam setup
+const camChaseBoat = new THREE.PerspectiveCamera(
+  90,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  10000
+);
+// Cámara: montada al bote (detrás y arriba)
+pivot.add(camChaseBoat);
+camChaseBoat.position.set(50, 25, 0);
+camChaseBoat.lookAt(new THREE.Vector3(0, 0, 0));
+
 const helpEl = document.getElementById('help');
 function updateHelp() {
   if (!helpEl) return;
@@ -258,27 +293,14 @@ function updateHelp() {
 		1,2,3,4,5,6,7,8 para cambiar cámara. <br />`;
   }
 }
-window.addEventListener('keydown', e => {
-  // *** NUEVO: tecla R para resetear a situación de despegue ***
-  if (e.code === 'KeyR') {
-    controller.setTransform({
-      position: airplaneSpawn,
-      euler: new THREE.Euler(0, 0, 0, 'YXZ'), // nivelado, nariz hacia -Z
-      throttle: 0,
-    });
-    camGral.position.set(250, 10, 0);
-    camGral.lookAt(0, 0, 0);
-  }
-  if (e.key === '1') {
-    mainCamera = 0;
-  } else if (e.key === '2') {
-    mainCamera = 1;
-  } else if (e.key === '3') {
-    mainCamera = 2;
-  }
-});
 
-cameras = [camGral, camChasePlane, camCockpit];
+cameras = [
+  camGral,
+  camChasePlane,
+  camCockpit,
+  camOrbitBoat,
+  camChaseBoat,
+];
 
 // --- Raycast Axis Helper ---
 const raycaster = new THREE.Raycaster();
@@ -363,6 +385,66 @@ function updateWindWakerWaves(time) {
   //final scale
   waves.scale.setScalar(scale * waveMotion);
 }
+
+// Destructor path
+const path = new THREE.CatmullRomCurve3(
+  [
+    new THREE.Vector3(47, -1, 223),
+    new THREE.Vector3(-117, -1, 127),
+    new THREE.Vector3(-225, -1, 117),
+    new THREE.Vector3(-259, -1, -11),
+    new THREE.Vector3(-259, -1, -123),
+    new THREE.Vector3(-164, -1, -140),
+    new THREE.Vector3(-42, -1, -186),
+    new THREE.Vector3(125, -1, -187),
+    new THREE.Vector3(226, -1, -121),
+    new THREE.Vector3(229, -1, -37),
+    new THREE.Vector3(209, -1, 54),
+    new THREE.Vector3(145, -1, 54),
+    new THREE.Vector3(144, -1, 180),
+  ],
+  true,
+  'catmullrom',
+  0.5
+);
+
+let pathTime = 0;
+function updateBoat(dt) {
+  pathTime += dt;
+  const speed = 0.05; // Adjust speed as needed
+  const t = (pathTime * speed) % 1; // Loop t between 0 and 1
+  const position = path.getPointAt(t);
+  //const tangent = path.getTangentAt(t).normalize();
+
+  pivot.position.copy(position);
+  // Orient the boat to face the direction of movement
+  const dT = ((pathTime + 0.5) * speed) % 1;
+  const nextT = (t + dT) % 1;
+  const nextPoint = path.getPointAt(nextT);
+  pivot.lookAt(nextPoint);
+  //const axis = new THREE.Vector3(0, 1, 0); // Up vector
+  //const angle = Math.atan2(tangent.x, tangent.z);
+  //pivot.quaternion.setFromAxisAngle(axis, angle);
+
+  // update orbit controls target to boat position
+  const worldPos = new THREE.Vector3();
+  pivot.getWorldPosition(worldPos);
+  const direction = new THREE.Vector3();
+  pivot.getWorldDirection(direction);
+
+  const distance = 30;
+  const targetPosition = new THREE.Vector3()
+    .copy(worldPos)
+    .add(direction.multiplyScalar(distance));
+  //camOrbitBoat.position.copy(targetPosition);
+  camOrbitBoatControls.target.copy(worldPos);
+  camOrbitBoatControls.update();
+
+  //console.log(camOrbitBoat.position, camOrbitBoatControls);
+
+  // update chase cam
+}
+
 const clock = new THREE.Clock();
 function animate() {
   // clamp por si se pausa el tab
@@ -387,8 +469,45 @@ function animate() {
   updateHelp();
   updateWindWakerWaves(clock.elapsedTime);
   updateTurret(dt, clock.elapsedTime);
+  updateBoat(dt);
   renderer.render(scene, cameras[mainCamera]);
   requestAnimationFrame(animate);
 }
+
+// reset and helper
+window.addEventListener('keydown', e => {
+  // *** NUEVO: tecla R para resetear a situación de despegue ***
+  if (e.code === 'KeyR') {
+    controller.setTransform({
+      position: airplaneSpawn,
+      euler: new THREE.Euler(0, 0, 0, 'YXZ'), // nivelado, nariz hacia -Z
+      throttle: 0,
+    });
+    camGral.position.set(250, 10, 0);
+    camGral.lookAt(0, 0, 0);
+    pathTime = 0;
+  }
+  if (e.code === 'KeyH') {
+    console.log('helper at:', axisHelper.position);
+  }
+
+  if (e.key === '1') {
+    mainCamera = 0;
+  } else if (e.key === '2') {
+    mainCamera = 1;
+  } else if (e.key === '3') {
+    mainCamera = 2;
+  } else if (e.key === '4') {
+    mainCamera = 3;
+  } else if (e.key === '5') {
+    mainCamera = 4;
+  } else if (e.key === '6') {
+    mainCamera = 5;
+  } else if (e.key === '7') {
+    mainCamera = 6;
+  } else if (e.key === '8') {
+    mainCamera = 7;
+  }
+});
 
 animate();
