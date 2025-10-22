@@ -1,6 +1,15 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/Addons.js';
 
+const controls = {};
+window.addEventListener('keydown', event => {
+  controls[event.code] = true;
+  console.log('Key down:', event.code);
+});
+window.addEventListener('keyup', event => {
+  controls[event.code] = false;
+});
+
 export function BoatModel() {
   const pivot = new THREE.Group();
   const loader = new GLTFLoader();
@@ -50,6 +59,40 @@ export function BoatModel() {
         // ensure updateTurret closes over turret/cannon
         function updateTurret(delta, time) {
           if (!turret || !cannon) return;
+          if (controls['KeyJ']) {
+            turret.rotateOnAxis(
+              new THREE.Vector3(0, 1, 0),
+              -Math.PI * delta * 0.5
+            );
+          }
+          if (controls['KeyL']) {
+            turret.rotateOnAxis(
+              new THREE.Vector3(0, 1, 0),
+              Math.PI * delta * 0.5
+            );
+          }
+          if (controls['KeyI']) {
+            cannon.rotateOnAxis(
+              new THREE.Vector3(0, 0, 1),
+              -Math.PI * delta * 0.5
+            );
+          }
+          if (controls['KeyK']) {
+            cannon.rotateOnAxis(
+              new THREE.Vector3(0, 0, 1),
+              Math.PI * delta * 0.5
+            );
+          }
+          // limit cannon rotation
+          const cannonRotation = cannon.rotation.z;
+          // keep in mind and offset of 90 degrees
+          const maxUp = THREE.MathUtils.degToRad(-45);
+          const maxDown = THREE.MathUtils.degToRad(-95);
+          if (cannonRotation > maxUp) {
+            cannon.rotation.z = maxUp;
+          } else if (cannonRotation < maxDown) {
+            cannon.rotation.z = maxDown;
+          }
         }
 
         resolve({ boat: pivot, cannon, updateTurret });
