@@ -14,6 +14,10 @@ export function BoatModel() {
           boat = node;
           boat.scale.set(1, 1, 1);
           boat.position.set(0, 0, 0);
+          boat.rotateOnAxis(
+            new THREE.Vector3(0, 1, 0),
+            -Math.PI / 2
+          );
           boat.castShadow = true;
           boat.receiveShadow = true;
           pivot.add(boat);

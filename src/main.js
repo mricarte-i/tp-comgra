@@ -417,14 +417,31 @@ function updateBoat(dt) {
   //const tangent = path.getTangentAt(t).normalize();
 
   pivot.position.copy(position);
-  // Orient the boat to face the direction of movement
-  const dT = ((pathTime + 0.5) * speed) % 1;
-  const nextT = (t + dT) % 1;
-  const nextPoint = path.getPointAt(nextT);
-  pivot.lookAt(nextPoint);
-  //const axis = new THREE.Vector3(0, 1, 0); // Up vector
-  //const angle = Math.atan2(tangent.x, tangent.z);
-  //pivot.quaternion.setFromAxisAngle(axis, angle);
+
+  // orient the boat using the path tangent (yaw only) ---
+  // get tangent and project to XZ (remove any Y component)
+  const tangent = path.getTangentAt(t).clone();
+  tangent.y = 0;
+  if (tangent.lengthSq() > 1e-6) {
+    tangent.normalize();
+
+    // Choose which local axis of the model should point forward.
+    // Use (0,0,1) if the model's forward is +Z, or (0,0,-1) if forward is -Z.
+    const modelForward = new THREE.Vector3(0, 0, 1);
+
+    // Compute quaternion that rotates modelForward -> tangent (yaw only)
+    const q = new THREE.Quaternion().setFromUnitVectors(
+      modelForward,
+      tangent
+    );
+
+    // Apply quaternion to the pivot (instant). If you want smoothing, slerp instead.
+    pivot.quaternion.copy(q);
+
+    // If the boat model appears rotated by 90deg, try:
+    // pivot.rotateY(Math.PI / 2);
+    // or switch modelForward to (0,0,-1) above.
+  }
 
   // update orbit controls target to boat position
   const worldPos = new THREE.Vector3();
