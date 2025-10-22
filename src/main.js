@@ -246,10 +246,10 @@ controller.setTransform({
 // Destructor  - boat
 //
 /////////////////////////////////////////////////
-const { pivot, updateTurret } = BoatModel();
-pivot.position.set(214, -1, 1);
-pivot.scale.set(0.5, 0.5, 0.5);
-scene.add(pivot);
+const { boat, cannon, updateTurret } = await BoatModel();
+boat.position.set(214, -1, 1);
+boat.scale.set(0.5, 0.5, 0.5);
+scene.add(boat);
 
 // orbit cam setup
 const camOrbitBoat = new THREE.PerspectiveCamera(
@@ -259,21 +259,18 @@ const camOrbitBoat = new THREE.PerspectiveCamera(
   10000
 );
 // Cámara: orbitando al bote
-//camOrbitBoat.position.set(pivot.position);
-//pivot.add(camOrbitBoat);
 const camOrbitBoatOffset = new THREE.Vector3(0, 10, 30);
 camOrbitBoat.position
-  .copy(pivot.position)
+  .copy(boat.position)
   .add(camOrbitBoatOffset);
 scene.add(camOrbitBoat);
-
 const camOrbitBoatControls = new OrbitControls(
   camOrbitBoat,
   renderer.domElement
 );
 // initialize controls target to boat world position
 const initialTarget = new THREE.Vector3();
-pivot.getWorldPosition(initialTarget);
+boat.getWorldPosition(initialTarget);
 camOrbitBoatControls.target.copy(initialTarget);
 camOrbitBoatControls.update();
 
@@ -285,9 +282,32 @@ const camChaseBoat = new THREE.PerspectiveCamera(
   10000
 );
 // Cámara: montada al bote (detrás y arriba)
-pivot.add(camChaseBoat);
+boat.add(camChaseBoat);
 camChaseBoat.position.set(50, 25, 0);
 camChaseBoat.lookAt(new THREE.Vector3(0, 0, 0));
+
+// turret cam
+const camTurretBoat = new THREE.PerspectiveCamera(
+  90,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  10000
+);
+// Cámara: montada a la torreta del bote
+cannon.add(camTurretBoat);
+camTurretBoat.position.set(-6, -15, 0);
+// debug: place an axis helper at the turret cam
+const turretCamHelper = new THREE.AxesHelper(5);
+camTurretBoat.add(turretCamHelper);
+camTurretBoat.rotateOnAxis(new THREE.Vector3(0, 0, 1), Math.PI);
+camTurretBoat.rotateOnAxis(
+  new THREE.Vector3(-1, 0, 0),
+  Math.PI / 2
+);
+camTurretBoat.rotateOnAxis(
+  new THREE.Vector3(0, 0, -1),
+  Math.PI / 2
+);
 
 const helpEl = document.getElementById('help');
 function updateHelp() {
@@ -310,6 +330,7 @@ cameras = [
   camCockpit,
   camOrbitBoat,
   camChaseBoat,
+  camTurretBoat,
 ];
 
 // --- Raycast Axis Helper ---
@@ -448,7 +469,7 @@ function updateBoat(dt) {
   const position = path.getPointAt(t);
 
   // set boat position
-  pivot.position.copy(position);
+  boat.position.copy(position);
 
   // orient the boat using the path tangent (yaw only) ---
   // get tangent and project to XZ (remove any Y component)
@@ -468,12 +489,12 @@ function updateBoat(dt) {
     );
 
     // Apply quaternion to the pivot (instant).
-    pivot.quaternion.copy(q);
+    boat.quaternion.copy(q);
   }
 
   // update orbit controls target to boat position
   const worldPos = new THREE.Vector3();
-  pivot.getWorldPosition(worldPos);
+  boat.getWorldPosition(worldPos);
 
   // move the orbit camera so it follows the boat ---
   // keep a fixed world-offset (camOrbitBoatOffset defined earlier)
