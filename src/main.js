@@ -327,10 +327,17 @@ async function setupBoatAndBoatCameras() {
   turretEndHelper.position.set(0, 8, 0);
 }
 
-let axisHelper, raycaster, mouse, hudEl, helpEl, cockpit;
+let axisHelper,
+  raycaster,
+  cannonRaycaster,
+  mouse,
+  hudEl,
+  helpEl,
+  cockpit;
 function setupHelpersAndUI() {
   // raycast axis helper
   raycaster = new THREE.Raycaster();
+  cannonRaycaster = new THREE.Raycaster();
   mouse = new THREE.Vector2();
   axisHelper = new THREE.AxesHelper(5);
   axisHelper.visible = false;
@@ -538,28 +545,62 @@ function updateBoat(dt) {
   }
 }
 
+const gravityForce = -9.81;
+const shotForce = 90;
+let initialShotPos = null;
 function turretShooting(dt) {
   if (!cannon || !turretEndHelper) return;
   const cannonBall = setupEnvironment._cannonBall;
   const velocity = setupEnvironment._cannonBallVelocity;
-  const g = new THREE.Vector3(0, -9.81, 0); // gravity
+  const g = new THREE.Vector3(0, gravityForce, 0); // gravity
 
-  // Fire once when Space is pressed (edge triggered by checking _isShooting)
+  // Fire cannon
   if (controls['Space'] && !setupEnvironment._isShooting) {
     const worldPos = new THREE.Vector3();
     turretEndHelper.getWorldPosition(worldPos);
+    initialShotPos = worldPos.clone();
     cannonBall.position.copy(worldPos);
     // initial direction: local (0,1,0) in cannon space (matches previous code)
     const forward = new THREE.Vector3(0, 1, 0).applyQuaternion(
       cannon.getWorldQuaternion(new THREE.Quaternion())
     );
-    const initialSpeed = 60; // tweak as needed
+    const initialSpeed = shotForce; // tweak as needed
     velocity.copy(forward).multiplyScalar(initialSpeed);
     setupEnvironment._isShooting = true;
   }
 
-  // integrate while flying
+  // v(t+dt) = v(t) + g * dt
+  // p(t+dt) = p(t) + v(t+dt) * dt
   if (setupEnvironment._isShooting) {
+    // raycast along velocity for collisions within this timestep
+    const travelDist = velocity.length() * dt;
+    if (travelDist > 1e-6) {
+      const origin = cannonBall.position.clone();
+      const dir = velocity.clone().normalize();
+      cannonRaycaster.set(origin, dir);
+      // check all scene objects (true = recursive)
+      // and ignore the cannonBall itself
+      const intersects = cannonRaycaster
+        .intersectObjects(scene.children, true)
+        .filter(i => i.object !== cannonBall);
+      if (intersects.length > 0) {
+        const hit = intersects.find(
+          i => i.distance <= travelDist + 0.01
+        );
+        if (hit && hit.object.type === 'Mesh') {
+          // place cannonBall at impact point and end flight
+          const distance = hit.point.distanceTo(initialShotPos);
+          console.log('Cannonball hit!\nDistance:', distance);
+
+          cannonBall.position.copy(hit.point);
+          setupEnvironment._isShooting = false;
+          velocity.set(0, 0, 0);
+          return;
+        }
+      }
+    }
+
+    // advance cannonball physics
     // v(t+dt) = v(t) + g * dt
     const vNew = velocity.clone().addScaledVector(g, dt);
     // p(t+dt) = p(t) + v(t+dt) * dt
@@ -567,8 +608,8 @@ function turretShooting(dt) {
     // store updated velocity
     velocity.copy(vNew);
 
-    // stop when reaching water level (y = -1)
-    if (cannonBall.position.y <= -1) {
+    // stop when underwater and reset
+    if (cannonBall.position.y <= -2) {
       cannonBall.position.y = -1;
       setupEnvironment._isShooting = false;
       velocity.set(0, 0, 0);
