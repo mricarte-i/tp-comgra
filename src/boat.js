@@ -74,13 +74,13 @@ export function BoatModel() {
           if (controls['KeyI']) {
             cannon.rotateOnAxis(
               new THREE.Vector3(0, 0, 1),
-              -Math.PI * delta * 0.5
+              Math.PI * delta * 0.5
             );
           }
           if (controls['KeyK']) {
             cannon.rotateOnAxis(
               new THREE.Vector3(0, 0, 1),
-              Math.PI * delta * 0.5
+              -Math.PI * delta * 0.5
             );
           }
           // limit cannon rotation

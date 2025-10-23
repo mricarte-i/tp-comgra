@@ -44,7 +44,7 @@ function MainBodyMesh() {
   const geometry = new ParametricGeometry(mainbody, 20, 20);
   const material = new THREE.MeshPhongMaterial({
     color: 0x2194ce,
-    side: THREE.DoubleSide,
+    side: THREE.FrontSide,
     //flatShading: true,
   });
   const mesh = new THREE.Mesh(geometry, material);
