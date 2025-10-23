@@ -7,6 +7,15 @@ import { createGroundBufferManual } from './terrain.js';
 import { BoatModel } from './boat.js';
 import { CircleCurve3 } from './circleCurve.js';
 
+const controls = {};
+window.addEventListener('keydown', event => {
+  controls[event.code] = true;
+  console.log('Key down:', event.code);
+});
+window.addEventListener('keyup', event => {
+  controls[event.code] = false;
+});
+
 let container;
 let renderer;
 let scene;
@@ -167,9 +176,24 @@ async function setupEnvironment() {
   hangar.position.set(130, -3.5, 64);
   scene.add(hangar);
 
+  const sphereGeo = new THREE.SphereGeometry(0.5, 8, 8);
+  const sphereMat = new THREE.MeshBasicMaterial({
+    color: 0xffff00,
+  });
+  const cannonBall = new THREE.Mesh(sphereGeo, sphereMat);
+  cannonBall.position.set(0, -2, 0);
+  scene.add(cannonBall);
+
   // expose for updateWindWakerWaves closure
   setupEnvironment._water = water;
   setupEnvironment._waves = wavesGroup;
+  setupEnvironment._cannonBall = cannonBall;
+  setupEnvironment._isShooting = false;
+  setupEnvironment._cannonBallVelocity = new THREE.Vector3(
+    0,
+    0,
+    0
+  );
 }
 
 async function setupAirplane() {
@@ -230,6 +254,7 @@ async function setupAirplane() {
   });
 }
 
+let turretEndHelper;
 async function setupBoatAndBoatCameras() {
   const boatRes = await BoatModel();
   boat = boatRes.boat;
@@ -296,6 +321,10 @@ async function setupBoatAndBoatCameras() {
     new THREE.Vector3(0, 0, -1),
     Math.PI / 2
   );
+
+  turretEndHelper = new THREE.AxesHelper(5);
+  cannon.add(turretEndHelper);
+  turretEndHelper.position.set(0, 8, 0);
 }
 
 let axisHelper, raycaster, mouse, hudEl, helpEl, cockpit;
@@ -509,6 +538,44 @@ function updateBoat(dt) {
   }
 }
 
+function turretShooting(dt) {
+  if (!cannon || !turretEndHelper) return;
+  const cannonBall = setupEnvironment._cannonBall;
+  const velocity = setupEnvironment._cannonBallVelocity;
+  const g = new THREE.Vector3(0, -9.81, 0); // gravity
+
+  // Fire once when Space is pressed (edge triggered by checking _isShooting)
+  if (controls['Space'] && !setupEnvironment._isShooting) {
+    const worldPos = new THREE.Vector3();
+    turretEndHelper.getWorldPosition(worldPos);
+    cannonBall.position.copy(worldPos);
+    // initial direction: local (0,1,0) in cannon space (matches previous code)
+    const forward = new THREE.Vector3(0, 1, 0).applyQuaternion(
+      cannon.getWorldQuaternion(new THREE.Quaternion())
+    );
+    const initialSpeed = 60; // tweak as needed
+    velocity.copy(forward).multiplyScalar(initialSpeed);
+    setupEnvironment._isShooting = true;
+  }
+
+  // integrate while flying
+  if (setupEnvironment._isShooting) {
+    // v(t+dt) = v(t) + g * dt
+    const vNew = velocity.clone().addScaledVector(g, dt);
+    // p(t+dt) = p(t) + v(t+dt) * dt
+    cannonBall.position.addScaledVector(vNew, dt);
+    // store updated velocity
+    velocity.copy(vNew);
+
+    // stop when reaching water level (y = -1)
+    if (cannonBall.position.y <= -1) {
+      cannonBall.position.y = -1;
+      setupEnvironment._isShooting = false;
+      velocity.set(0, 0, 0);
+    }
+  }
+}
+
 function animate() {
   const dt = Math.min(0.05, clock.getDelta());
   controller.update(dt);
@@ -532,6 +599,7 @@ function animate() {
   updateWindWakerWaves(clock.elapsedTime);
   if (updateTurret) updateTurret(dt, clock.elapsedTime);
   updateBoat(dt);
+  turretShooting(dt);
   renderer.render(scene, cameras[mainCamera]);
   requestAnimationFrame(animate);
 }
