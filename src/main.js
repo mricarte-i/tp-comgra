@@ -36,6 +36,15 @@ async function init() {
   await setupBoatAndBoatCameras();
   setupHelpersAndUI();
   setupEvents();
+  // final camera array (order matches original)
+  cameras = [
+    camGral,
+    camChasePlane,
+    camCockpit,
+    camOrbitBoat,
+    camChaseBoat,
+    camTurretBoat,
+  ];
   animate();
 }
 
@@ -286,16 +295,6 @@ async function setupBoatAndBoatCameras() {
     new THREE.Vector3(0, 0, -1),
     Math.PI / 2
   );
-
-  // final camera array (order matches original)
-  cameras = [
-    camGral,
-    camChasePlane,
-    camCockpit,
-    camOrbitBoat,
-    camChaseBoat,
-    camTurretBoat,
-  ];
 }
 
 let axisHelper, raycaster, mouse, hudEl, helpEl, cockpit;
