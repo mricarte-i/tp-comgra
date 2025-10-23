@@ -5,6 +5,7 @@ import { AirplaneGeometry } from './airplaneModel.js';
 import { BaseScene } from './baseScene.js';
 import { createGroundBufferManual } from './terrain.js';
 import { BoatModel } from './boat.js';
+import { CircleCurve3 } from './circleCurve.js';
 
 let container;
 let renderer;
@@ -312,37 +313,23 @@ function setupHelpersAndUI() {
   cockpit = document.getElementById('cockpit');
 
   // visualize the "destructor" path points from original file
-  const path = new THREE.CatmullRomCurve3(
-    [
-      new THREE.Vector3(47, -1, 223),
-      new THREE.Vector3(-91, -1, 167),
-      new THREE.Vector3(-225, -1, 117),
-      new THREE.Vector3(-259, -1, -11),
-      new THREE.Vector3(-259, -1, -123),
-      new THREE.Vector3(-164, -1, -140),
-      new THREE.Vector3(-42, -1, -186),
-      new THREE.Vector3(125, -1, -187),
-      new THREE.Vector3(226, -1, -121),
-      new THREE.Vector3(229, -1, -37),
-      new THREE.Vector3(249, -1, 54),
-      new THREE.Vector3(203, -1, 96),
-      new THREE.Vector3(144, -1, 180),
-    ],
-    true,
-    'catmullrom',
-    0.5
+  const path = new CircleCurve3(
+    new THREE.Vector3(0, -1, 0),
+    275
   );
+
+  const points = path.getPoints(12);
 
   const sphereMat = new THREE.MeshBasicMaterial({
     color: 0xff0000,
   });
-  for (let i = 0; i < path.points.length; i++) {
+  for (let i = 0; i < points.length; i++) {
     const sp = new THREE.Mesh(
       new THREE.SphereGeometry(1, 8, 8),
       sphereMat.clone()
     );
-    sp.material.color.setHSL(i / path.points.length, 1, 0.5);
-    sp.position.copy(path.points[i]);
+    sp.material.color.setHSL(i / points.length, 1, 0.5);
+    sp.position.copy(points[i]);
     scene.add(sp);
   }
 
