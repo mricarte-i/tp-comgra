@@ -172,7 +172,7 @@ function createAirport() {
     0.1,
     camerasFarClip
   );
-  camOrbitTower.position.set(-10, 5, -16);
+  camOrbitTower.position.set(20, 50, -24);
   scene.add(camOrbitTower);
   const camOrbitTowerControls = new OrbitControls(
     camOrbitTower,
