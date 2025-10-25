@@ -62,13 +62,13 @@ export function BoatModel() {
           if (controls['KeyJ']) {
             turret.rotateOnAxis(
               new THREE.Vector3(0, 1, 0),
-              -Math.PI * delta * 0.5
+              Math.PI * delta * 0.5
             );
           }
           if (controls['KeyL']) {
             turret.rotateOnAxis(
               new THREE.Vector3(0, 1, 0),
-              Math.PI * delta * 0.5
+              -Math.PI * delta * 0.5
             );
           }
           if (controls['KeyI']) {

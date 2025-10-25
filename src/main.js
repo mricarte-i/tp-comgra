@@ -7,14 +7,8 @@ import { createGroundBufferManual } from './terrain.js';
 import { BoatModel } from './boat.js';
 import { CircleCurve3 } from './circleCurve.js';
 
+// for handling keyboard events better
 const controls = {};
-window.addEventListener('keydown', event => {
-  controls[event.code] = true;
-  console.log('Key down:', event.code);
-});
-window.addEventListener('keyup', event => {
-  controls[event.code] = false;
-});
 
 let container;
 let renderer;
@@ -111,6 +105,61 @@ function setupRendererAndScene() {
   onResize();
 }
 
+function createAirport() {
+  const airport = new THREE.Mesh(
+    new THREE.BoxGeometry(25, 10, 40),
+    new THREE.MeshPhongMaterial({ color: 0x888888 })
+  );
+  airport.position.set(130, -3.8, 64);
+  scene.add(airport);
+
+  const runway = new THREE.Mesh(
+    new THREE.BoxGeometry(10, 10, 60),
+    new THREE.MeshPhongMaterial({ color: 0x333333 })
+  );
+  runway.position.set(8.5, 0.5, 0.5);
+  airport.add(runway);
+
+  const tower = new THREE.Mesh(
+    new THREE.CylinderGeometry(1, 2, 8, 8),
+    new THREE.MeshPhongMaterial({ color: 0x555555 })
+  );
+  tower.position.set(-6, 7.5, -16);
+  airport.add(tower);
+  const towerTop = new THREE.Mesh(
+    new THREE.CylinderGeometry(2.5, 1.5, 1.5, 8),
+    new THREE.MeshPhongMaterial({ color: 0x777777 })
+  );
+  towerTop.position.set(0, 4.5, 0);
+  tower.add(towerTop);
+  const towerAntenna = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.1, 3, 8),
+    new THREE.MeshPhongMaterial({ color: 0x222222 })
+  );
+  towerAntenna.position.set(0, 2.5, 0);
+  towerTop.add(towerAntenna);
+
+  const hangars = new THREE.Group();
+  function createHangar() {
+    const hangarBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(3, 3, 6, 16),
+      new THREE.MeshPhongMaterial({
+        color: 0x999999,
+        side: THREE.DoubleSide,
+      })
+    );
+    hangarBase.rotation.set(0, 0, Math.PI / 2);
+    return hangarBase;
+  }
+  for (let i = 0; i < 3; i++) {
+    const hangar = createHangar();
+    hangar.position.set(-10, 5, 15 + i * 7);
+    hangars.add(hangar);
+  }
+  hangars.position.set(4, 0, -16);
+  airport.add(hangars);
+}
+
 async function setupEnvironment() {
   createGroundBufferManual(
     undefined,
@@ -169,12 +218,7 @@ async function setupEnvironment() {
   wavesGroup.position.set(200, 1, 0);
   scene.add(wavesGroup);
 
-  const hangar = new THREE.Mesh(
-    new THREE.BoxGeometry(20, 10, 20),
-    new THREE.MeshPhongMaterial({ color: 0x888888 })
-  );
-  hangar.position.set(130, -3.5, 64);
-  scene.add(hangar);
+  createAirport();
 
   const sphereGeo = new THREE.SphereGeometry(0.5, 8, 8);
   const sphereMat = new THREE.MeshBasicMaterial({
@@ -202,7 +246,7 @@ async function setupAirplane() {
   updateFanRotation = res.updateFanRotation;
   updateTopLight = res.updateTopLight;
 
-  const airplaneSpawn = new THREE.Vector3(200, 2, 0);
+  const airplaneSpawn = new THREE.Vector3(138.5, 2, 92);
   scene.add(airplane);
 
   // chase camera
@@ -224,7 +268,7 @@ async function setupAirplane() {
     10000
   );
   airplane.add(camCockpit);
-  camCockpit.position.set(0, -0.25, -0.5);
+  camCockpit.position.set(0, -0.25, -0.65);
   camCockpit.lookAt(new THREE.Vector3(0, 1, -10));
 
   // controller
@@ -374,7 +418,17 @@ function setupHelpersAndUI() {
   setupHelpersAndUI._pathTime = 0;
 }
 
+let helperLine;
+let lastSavedRaycastPoint = null;
 function setupEvents() {
+  // key controls
+  window.addEventListener('keydown', event => {
+    controls[event.code] = true;
+  });
+  window.addEventListener('keyup', event => {
+    controls[event.code] = false;
+  });
+
   // mouse move raycast
   window.addEventListener('mousemove', event => {
     mouse.x =
@@ -398,7 +452,30 @@ function setupEvents() {
     if (closest) {
       axisHelper.position.copy(closest.point);
       axisHelper.visible = true;
-    } else axisHelper.visible = false;
+
+      if (!controls['ShiftLeft'] && !controls['ShiftRight']) {
+        lastSavedRaycastPoint = closest.point.clone();
+      } else {
+        //draw a line from lastSavedRaycastPoint to the current point
+        if (lastSavedRaycastPoint) {
+          if (helperLine) {
+            scene.remove(helperLine);
+          }
+          const points = [];
+          points.push(lastSavedRaycastPoint);
+          points.push(closest.point);
+          const geometry =
+            new THREE.BufferGeometry().setFromPoints(points);
+          const material = new THREE.LineBasicMaterial({
+            color: 0xffff00,
+          });
+          helperLine = new THREE.Line(geometry, material);
+          scene.add(helperLine);
+        }
+      }
+    } else {
+      axisHelper.visible = false;
+    }
   });
 
   window.addEventListener('keydown', e => {
@@ -413,8 +490,9 @@ function setupEvents() {
       camGral.lookAt(0, 0, 0);
       setupHelpersAndUI._pathTime = 0;
     }
-    if (e.code === 'KeyH')
+    if (e.code === 'KeyH') {
       console.log('helper at:', axisHelper.position);
+    }
 
     // switch cameras with number keys
     if (e.key >= '1' && e.key <= '8') {
@@ -487,6 +565,14 @@ function updateHUD() {
           )} z:${axisHelper.position.z.toFixed(1)}`
         : '---'
     }<br>`;
+  if (
+    lastSavedRaycastPoint &&
+    (controls['ShiftLeft'] || controls['ShiftRight'])
+  ) {
+    hudEl.innerHTML += `Distance: ${lastSavedRaycastPoint
+      .distanceTo(axisHelper.position)
+      .toFixed(1)} u<br>`;
+  }
 }
 
 function updateWindWakerWaves(time) {
