@@ -22,6 +22,8 @@ let camCockpit;
 let camOrbitBoat;
 let camChaseBoat;
 let camTurretBoat;
+let camOrbitTower;
+let camRunway;
 
 let airplane, updateFanRotation, updateTopLight;
 let boat, cannon, updateTurret;
@@ -29,12 +31,21 @@ let controller;
 
 const clock = new THREE.Clock();
 const camOrbitBoatOffset = new THREE.Vector3(0, 10, 30);
+const effectController = {
+  turbidity: 10,
+  rayleigh: 3,
+  mieCoefficient: 0.005,
+  mieDirectionalG: 0.7,
+  elevation: 5,
+  azimuth: 25,
+  exposure: 1, //renderer.toneMappingExposure,
+};
 
 async function init() {
   container = document.getElementById('container3D');
 
   setupRendererAndScene();
-  BaseScene(scene); // axis helper + default lights
+  BaseScene(scene, effectController); // axis helper + default lights
   await setupEnvironment();
   await setupAirplane();
   await setupBoatAndBoatCameras();
@@ -48,6 +59,8 @@ async function init() {
     camOrbitBoat,
     camChaseBoat,
     camTurretBoat,
+    camOrbitTower,
+    camRunway,
   ];
   animate();
 }
@@ -56,6 +69,7 @@ function setupRendererAndScene() {
   renderer = new THREE.WebGLRenderer();
   scene = new THREE.Scene();
   container.appendChild(renderer.domElement);
+  renderer.toneMappingExposure = effectController.exposure;
 
   camGral = new THREE.PerspectiveCamera(
     75,
@@ -120,6 +134,17 @@ function createAirport() {
   runway.position.set(8.5, 0.5, 0.5);
   airport.add(runway);
 
+  // camera overlooking runway
+  camRunway = new THREE.PerspectiveCamera(
+    40,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    10000
+  );
+  camRunway.position.set(138, 100, 68);
+  camRunway.lookAt(new THREE.Vector3(138, 0, 68));
+  scene.add(camRunway);
+
   const tower = new THREE.Mesh(
     new THREE.CylinderGeometry(1, 2, 8, 8),
     new THREE.MeshPhongMaterial({ color: 0x555555 })
@@ -138,6 +163,24 @@ function createAirport() {
   );
   towerAntenna.position.set(0, 2.5, 0);
   towerTop.add(towerAntenna);
+
+  // camera with orbit controls on tower
+  camOrbitTower = new THREE.PerspectiveCamera(
+    90,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    10000
+  );
+  camOrbitTower.position.set(-10, 5, -16);
+  scene.add(camOrbitTower);
+  const camOrbitTowerControls = new OrbitControls(
+    camOrbitTower,
+    renderer.domElement
+  );
+  const towerTarget = new THREE.Vector3();
+  tower.getWorldPosition(towerTarget);
+  camOrbitTowerControls.target.copy(towerTarget);
+  camOrbitTowerControls.update();
 
   const hangars = new THREE.Group();
   function createHangar() {
@@ -158,6 +201,17 @@ function createAirport() {
   }
   hangars.position.set(4, 0, -16);
   airport.add(hangars);
+
+  [
+    airport,
+    runway,
+    tower,
+    towerTop,
+    towerAntenna,
+    ...hangars.children,
+  ].forEach(m => {
+    m.castShadow = m.receiveShadow = true;
+  });
 }
 
 async function setupEnvironment() {
@@ -296,6 +350,8 @@ async function setupAirplane() {
     euler: new THREE.Euler(0, 0, 0, 'YXZ'),
     throttle: 0,
   });
+
+  setupAirplane._spawn = airplaneSpawn;
 }
 
 let turretEndHelper;
@@ -338,8 +394,9 @@ async function setupBoatAndBoatCameras() {
     10000
   );
   boat.add(camChaseBoat);
-  camChaseBoat.position.set(50, 25, 0);
-  camChaseBoat.lookAt(new THREE.Vector3(0, 0, 0));
+  camChaseBoat.position.set(0, 20, -50);
+  camChaseBoat.lookAt(new THREE.Vector3(250, -5, 8000));
+  //camChaseBoat.lookAt(new THREE.Vector3(-50, 0, 0));
 
   // turret cam (attached to cannon)
   camTurretBoat = new THREE.PerspectiveCamera(
@@ -482,7 +539,7 @@ function setupEvents() {
     if (e.code === 'KeyR') {
       // reset airplane to spawn
       controller.setTransform({
-        position: new THREE.Vector3(200, 2, 0),
+        position: setupAirplane._spawn,
         euler: new THREE.Euler(0, 0, 0, 'YXZ'),
         throttle: 0,
       });
@@ -598,7 +655,7 @@ function updateWindWakerWaves(time) {
 function updateBoat(dt) {
   const path = setupHelpersAndUI._path;
   setupHelpersAndUI._pathTime += dt;
-  const speed = 0.05;
+  const speed = 0.01;
   const t = (setupHelpersAndUI._pathTime * speed) % 1;
   const position = path.getPointAt(t);
   boat.position.copy(position);

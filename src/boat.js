@@ -4,7 +4,6 @@ import { GLTFLoader } from 'three/examples/jsm/Addons.js';
 const controls = {};
 window.addEventListener('keydown', event => {
   controls[event.code] = true;
-  console.log('Key down:', event.code);
 });
 window.addEventListener('keyup', event => {
   controls[event.code] = false;
