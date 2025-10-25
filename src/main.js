@@ -40,6 +40,7 @@ const effectController = {
   azimuth: 25,
   exposure: 1, //renderer.toneMappingExposure,
 };
+const camerasFarClip = 10000;
 
 async function init() {
   container = document.getElementById('container3D');
@@ -75,7 +76,7 @@ function setupRendererAndScene() {
     75,
     window.innerWidth / window.innerHeight,
     0.1,
-    1000
+    camerasFarClip
   );
   camGral.position.set(250, 10, 0);
   camGral.lookAt(0, 0, 0);
@@ -139,7 +140,7 @@ function createAirport() {
     40,
     window.innerWidth / window.innerHeight,
     0.1,
-    10000
+    camerasFarClip
   );
   camRunway.position.set(138, 100, 68);
   camRunway.lookAt(new THREE.Vector3(138, 0, 68));
@@ -169,7 +170,7 @@ function createAirport() {
     90,
     window.innerWidth / window.innerHeight,
     0.1,
-    10000
+    camerasFarClip
   );
   camOrbitTower.position.set(-10, 5, -16);
   scene.add(camOrbitTower);
@@ -308,7 +309,7 @@ async function setupAirplane() {
     90,
     window.innerWidth / window.innerHeight,
     0.1,
-    10000
+    camerasFarClip
   );
   airplane.add(camChasePlane);
   camChasePlane.position.set(0, 3, 5);
@@ -319,7 +320,7 @@ async function setupAirplane() {
     120,
     window.innerWidth / window.innerHeight,
     0.1,
-    10000
+    camerasFarClip
   );
   airplane.add(camCockpit);
   camCockpit.position.set(0, -0.25, -0.65);
@@ -370,7 +371,7 @@ async function setupBoatAndBoatCameras() {
     90,
     window.innerWidth / window.innerHeight,
     0.1,
-    10000
+    camerasFarClip
   );
   camOrbitBoat.position
     .copy(boat.position)
@@ -391,7 +392,7 @@ async function setupBoatAndBoatCameras() {
     90,
     window.innerWidth / window.innerHeight,
     0.1,
-    10000
+    camerasFarClip
   );
   boat.add(camChaseBoat);
   camChaseBoat.position.set(0, 20, -50);
@@ -403,7 +404,7 @@ async function setupBoatAndBoatCameras() {
     90,
     window.innerWidth / window.innerHeight,
     0.1,
-    10000
+    camerasFarClip
   );
   cannon.add(camTurretBoat);
   camTurretBoat.position.set(-6, -15, 0);
@@ -688,6 +689,21 @@ function updateBoat(dt) {
   }
 }
 
+const explosionDuration = 1; // seconds
+let explosions = [];
+function spawnExplosion(position, startTime) {
+  const geo = new THREE.SphereGeometry(0.1, 16, 16);
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0xffaa00,
+    transparent: true,
+    opacity: 1,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(position);
+  scene.add(mesh);
+  explosions.push({ mesh, mat, geo, startTime });
+}
+
 const gravityForce = -9.81;
 const shotForce = 90;
 let initialShotPos = null;
@@ -735,6 +751,7 @@ function turretShooting(dt) {
           const distance = hit.point.distanceTo(initialShotPos);
           console.log('Cannonball hit!\nDistance:', distance);
 
+          spawnExplosion(hit.point, clock.elapsedTime);
           cannonBall.position.copy(hit.point);
           setupEnvironment._isShooting = false;
           velocity.set(0, 0, 0);
@@ -760,8 +777,48 @@ function turretShooting(dt) {
   }
 }
 
+const explosionMaxScale = 100;
+function updateExplosions(now) {
+  for (let i = explosions.length - 1; i >= 0; i--) {
+    const exp = explosions[i];
+    const elapsed = now - exp.startTime;
+    if (elapsed >= explosionDuration) {
+      // remove explosion
+      scene.remove(exp.mesh);
+      exp.geo.dispose();
+      exp.mat.dispose();
+      explosions.splice(i, 1);
+      console.log('Explosion ended');
+    } else {
+      // update size and opacity
+      const t = elapsed / explosionDuration;
+      let scale, opacity;
+      if (t < 0.5) {
+        // expanding
+        scale = THREE.MathUtils.lerp(
+          0.1,
+          explosionMaxScale,
+          t * 2
+        );
+        opacity = THREE.MathUtils.lerp(1, 0.5, t * 2);
+      } else {
+        // contracting
+        scale = THREE.MathUtils.lerp(
+          explosionMaxScale,
+          0.1,
+          (t - 0.5) * 2
+        );
+        opacity = THREE.MathUtils.lerp(0.5, 0, (t - 0.5) * 2);
+      }
+      exp.mesh.scale.setScalar(scale);
+      exp.mat.opacity = opacity;
+    }
+  }
+}
+
 function animate() {
   const dt = Math.min(0.05, clock.getDelta());
+  //  airplane related stuff
   controller.update(dt);
   updateFanRotation(
     clock.elapsedTime,
@@ -778,12 +835,20 @@ function animate() {
       ? 0x0000ff
       : 0xffffff
   );
+  updateWindWakerWaves(clock.elapsedTime);
+
+  // hud and help
   updateHUD();
   updateHelp();
-  updateWindWakerWaves(clock.elapsedTime);
-  if (updateTurret) updateTurret(dt, clock.elapsedTime);
+
+  // boat and turret stuff
+  if (updateTurret) {
+    updateTurret(dt, clock.elapsedTime);
+  }
   updateBoat(dt);
   turretShooting(dt);
+  updateExplosions(clock.elapsedTime);
+
   renderer.render(scene, cameras[mainCamera]);
   requestAnimationFrame(animate);
 }
