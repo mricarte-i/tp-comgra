@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AirplaneController } from './airplaneController.js';
 import { AirplaneGeometry } from './airplaneModel.js';
 import { BaseScene } from './baseScene.js';
-import { createGroundBufferManual } from './terrain.js';
+import { createGround } from './terrain.js';
 import { BoatModel } from './boat.js';
 import { CircleCurve3 } from './circleCurve.js';
 
@@ -216,19 +216,17 @@ function createAirport() {
 }
 
 async function setupEnvironment() {
-  createGroundBufferManual(
+  const ground = await createGround(
     undefined,
     undefined,
     undefined,
-    256,
-    256,
+    128,
+    128,
     30,
-    0.01,
-    mesh => {
-      mesh.position.set(0, -2, 0);
-      scene.add(mesh);
-    }
+    0.01
   );
+  ground.position.set(0, -2, 0);
+  scene.add(ground);
 
   const water = new THREE.Mesh(
     new THREE.PlaneGeometry(10000, 10000),
@@ -295,7 +293,7 @@ async function setupEnvironment() {
   );
 }
 
-async function setupAirplane() {
+function setupAirplane() {
   const res = AirplaneGeometry();
   airplane = res.airplane;
   updateFanRotation = res.updateFanRotation;

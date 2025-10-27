@@ -1,48 +1,13 @@
 import * as THREE from 'three';
 
-export function createGround() {
-  const groundGeo = new THREE.PlaneGeometry(500, 500, 256, 256);
-  let heightMap = new THREE.TextureLoader().load(
-    '/public/heightmap.png',
-    tex => {
-      tex.minFilter = THREE.LinearFilter;
-      tex.magFilter = THREE.LinearFilter;
-      tex.anisotropy = 4;
-      tex.needsUpdate = true;
-    },
-    evt => {
-      console.log('Loading texture...', evt);
-    },
-    err => {
-      console.error('Error loading texture:', err);
-    }
-  );
-  heightMap.wrapS = THREE.RepeatWrapping;
-  heightMap.wrapT = THREE.RepeatWrapping;
-  heightMap.repeat.set(1, 1);
-
-  const groundMat = new THREE.MeshPhongMaterial({
-    color: 0x228833,
-    //side: THREE.DoubleSide,
-    wireframe: true,
-    displacementMap: heightMap,
-    displacementScale: 20,
-  });
-  const ground = new THREE.Mesh(groundGeo, groundMat);
-  ground.rotation.x = -Math.PI / 2;
-  ground.castShadow = ground.receiveShadow = true;
-  return ground;
-}
-
-export function createGroundBufferManual(
+export async function createGround(
   path = '/public/heightmap.png',
   width = 500,
   height = 500,
   widthSegments = 256,
   heightSegments = 256,
   scale = 20,
-  lowFilter = 10,
-  callback
+  lowFilter = 10
 ) {
   const geometry = new THREE.BufferGeometry();
 
@@ -83,47 +48,56 @@ export function createGroundBufferManual(
 
   // Load heightmap using TextureLoader
   const loader = new THREE.TextureLoader();
-  loader.load(path, texture => {
-    // Create a canvas to read pixel data
-    const img = texture.image;
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    const data = ctx.getImageData(
-      0,
-      0,
-      img.width,
-      img.height
-    ).data;
+  return new Promise((resolve, reject) => {
+    loader.load(
+      path,
+      texture => {
+        // Create a canvas to read pixel data
+        const img = texture.image;
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(
+          0,
+          0,
+          img.width,
+          img.height
+        ).data;
 
-    const pos = geometry.getAttribute('position');
-    for (let i = 0; i < pos.count; i++) {
-      const u = uvs[i * 2];
-      const v = uvs[i * 2 + 1];
-      const px = Math.floor(u * (img.width - 1));
-      const py = Math.floor(v * (img.height - 1));
-      const idx = (py * img.width + px) * 4;
-      let heightValue = data[idx] / 255; // Use red channel
-      if (heightValue < lowFilter) {
-        //console.log('Low height value filtered:', heightValue);
-        heightValue = -10;
+        const pos = geometry.getAttribute('position');
+        for (let i = 0; i < pos.count; i++) {
+          const u = uvs[i * 2];
+          const v = uvs[i * 2 + 1];
+          const px = Math.floor(u * (img.width - 1));
+          const py = Math.floor(v * (img.height - 1));
+          const idx = (py * img.width + px) * 4;
+          let heightValue = data[idx] / 255; // Use red channel
+          if (heightValue < lowFilter) {
+            //console.log('Low height value filtered:', heightValue);
+            heightValue = -10;
+          }
+          pos.setY(i, heightValue * scale); // Scale as needed
+        }
+        pos.needsUpdate = true;
+
+        geometry.computeVertexNormals();
+
+        const material = new THREE.MeshPhongMaterial({
+          color: 0x228833,
+          //wireframe: true,
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        //mesh.rotation.x = -Math.PI / 2;
+        mesh.castShadow = mesh.receiveShadow = true;
+
+        resolve(mesh);
+      },
+      undefined,
+      err => {
+        reject(err);
       }
-      pos.setY(i, heightValue * scale); // Scale as needed
-    }
-    pos.needsUpdate = true;
-
-    geometry.computeVertexNormals();
-
-    const material = new THREE.MeshPhongMaterial({
-      color: 0x228833,
-      //wireframe: true,
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    //mesh.rotation.x = -Math.PI / 2;
-    mesh.castShadow = mesh.receiveShadow = true;
-
-    if (callback) callback(mesh);
+    );
   });
 }
