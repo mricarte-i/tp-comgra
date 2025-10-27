@@ -120,6 +120,7 @@ function setupRendererAndScene() {
   onResize();
 }
 
+let antennaLight;
 function createAirport() {
   const airport = new THREE.Mesh(
     new THREE.BoxGeometry(25, 10, 40),
@@ -164,6 +165,9 @@ function createAirport() {
   );
   towerAntenna.position.set(0, 2.5, 0);
   towerTop.add(towerAntenna);
+  antennaLight = new THREE.PointLight(0xffaa00, 1, 50);
+  antennaLight.position.set(0, 1.5, 0);
+  towerAntenna.add(antennaLight);
 
   // camera with orbit controls on tower
   camOrbitTower = new THREE.PerspectiveCamera(
@@ -449,10 +453,7 @@ function setupHelpersAndUI() {
   cockpit = document.getElementById('cockpit');
 
   // visualize the "destructor" path points from original file
-  const path = new CircleCurve3(
-    new THREE.Vector3(0, -1, 0),
-    275
-  );
+  const path = new CircleCurve3(new THREE.Vector3(0, 0, 0), 275);
 
   const points = path.getPoints(12);
 
@@ -814,8 +815,14 @@ function updateExplosions(now) {
   }
 }
 
+function updateAirportLights(now) {
+  const intensity = 0.5 + 10 * Math.sin(now * 5);
+  antennaLight.intensity = intensity;
+}
+
 function animate() {
   const dt = Math.min(0.05, clock.getDelta());
+
   //  airplane related stuff
   controller.update(dt);
   updateFanRotation(
@@ -846,6 +853,9 @@ function animate() {
   updateBoat(dt);
   turretShooting(dt);
   updateExplosions(clock.elapsedTime);
+
+  // lighting
+  updateAirportLights(clock.elapsedTime);
 
   renderer.render(scene, cameras[mainCamera]);
   requestAnimationFrame(animate);
