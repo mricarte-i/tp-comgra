@@ -32,13 +32,13 @@ let controller;
 const clock = new THREE.Clock();
 const camOrbitBoatOffset = new THREE.Vector3(0, 10, 30);
 const effectController = {
-  turbidity: 10,
-  rayleigh: 3,
+  turbidity: 1,
+  rayleigh: 0.2,
   mieCoefficient: 0.005,
   mieDirectionalG: 0.7,
-  elevation: 5,
+  elevation: 20,
   azimuth: 25,
-  exposure: 1, //renderer.toneMappingExposure,
+  exposure: 0.5, //renderer.toneMappingExposure,
 };
 const camerasFarClip = 10000;
 
@@ -68,6 +68,7 @@ async function init() {
 
 function setupRendererAndScene() {
   renderer = new THREE.WebGLRenderer();
+  renderer.shadowMap.enabled = true;
   scene = new THREE.Scene();
   container.appendChild(renderer.domElement);
   renderer.toneMappingExposure = effectController.exposure;
@@ -166,6 +167,7 @@ function createAirport() {
   towerAntenna.position.set(0, 2.5, 0);
   towerTop.add(towerAntenna);
   antennaLight = new THREE.PointLight(0xffaa00, 1, 50);
+  antennaLight.castShadow = true;
   antennaLight.position.set(0, 1.5, 0);
   towerAntenna.add(antennaLight);
 
@@ -278,11 +280,12 @@ async function setupEnvironment() {
   createAirport();
 
   const sphereGeo = new THREE.SphereGeometry(0.5, 8, 8);
-  const sphereMat = new THREE.MeshBasicMaterial({
+  const sphereMat = new THREE.MeshPhongMaterial({
     color: 0xffff00,
   });
   const cannonBall = new THREE.Mesh(sphereGeo, sphereMat);
   cannonBall.position.set(0, -2, 0);
+  cannonBall.castShadow = cannonBall.receiveShadow = true;
   scene.add(cannonBall);
 
   // expose for updateWindWakerWaves closure
@@ -457,7 +460,7 @@ function setupHelpersAndUI() {
 
   const points = path.getPoints(12);
 
-  const sphereMat = new THREE.MeshBasicMaterial({
+  const sphereMat = new THREE.MeshPhongMaterial({
     color: 0xff0000,
   });
   for (let i = 0; i < points.length; i++) {
@@ -692,7 +695,7 @@ const explosionDuration = 1; // seconds
 let explosions = [];
 function spawnExplosion(position, startTime) {
   const geo = new THREE.SphereGeometry(0.1, 16, 16);
-  const mat = new THREE.MeshBasicMaterial({
+  const mat = new THREE.MeshPhongMaterial({
     color: 0xffaa00,
     transparent: true,
     opacity: 1,

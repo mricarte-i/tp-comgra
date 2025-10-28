@@ -39,19 +39,29 @@ export function BaseScene(scene, effectController) {
     color.multiplyScalar(intensity);
     return color;
   }
+  function lightIntensity() {
+    const theta = Math.PI * (sun.y + 0.1);
+    const intensity = Math.max(
+      0,
+      Math.min(1, 1 - theta / Math.PI)
+    );
+    return intensity * 3;
+  }
 
   const light = new THREE.DirectionalLight(
     //color based on sky
     lightColor(),
     //intensity based on sky
-    effectController.rayleigh * 0.5
+    //effectController.rayleigh * 0.5
+    lightIntensity()
   );
+  light.castShadow = true;
 
   light.position.copy(sun);
   scene.add(light);
 
   // lets boost the ambient light a bit
-  const ambientLight = new THREE.AmbientLight(0x666666, 0.75);
+  const ambientLight = new THREE.AmbientLight(0x666666, 1);
   scene.add(ambientLight);
 
   const grid = new THREE.GridHelper(10, 10);
