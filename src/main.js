@@ -52,7 +52,7 @@ async function init() {
   await setupBoatAndBoatCameras();
   setupHelpersAndUI();
   setupEvents();
-  // final camera array (order matches original)
+  // final camera array
   cameras = [
     camGral,
     camChasePlane,
