@@ -13,6 +13,8 @@ const controls = {};
 let container;
 let renderer;
 let scene;
+
+// cameras
 let cameras = [];
 let mainCamera = 0;
 
@@ -24,6 +26,12 @@ let camChaseBoat;
 let camTurretBoat;
 let camOrbitTower;
 let camRunway;
+
+// orbit controls
+let orbitControls = [];
+let camGralControls;
+let camOrbitBoatControls;
+let camOrbitTowerControls;
 
 let airplane, updateFanRotation, updateTopLight;
 let boat, cannon, updateTurret;
@@ -65,6 +73,23 @@ async function init() {
     camOrbitTower,
     camRunway,
   ];
+  orbitControls = [
+    camGralControls,
+    null,
+    null,
+    camOrbitBoatControls,
+    null,
+    null,
+    camOrbitTowerControls,
+    null,
+  ];
+  // disable orbit controls for other cameras
+  // and enable for the selected one
+  for (let i = 0; i < orbitControls.length; i++) {
+    if (orbitControls[i]) {
+      orbitControls[i].enabled = i === mainCamera;
+    }
+  }
   animate();
 }
 
@@ -90,7 +115,7 @@ function setupRendererAndScene() {
   camGral.position.set(250, 10, 0);
   camGral.lookAt(0, 0, 0);
 
-  const controls = new OrbitControls(
+  camGralControls = new OrbitControls(
     camGral,
     renderer.domElement
   );
@@ -105,10 +130,10 @@ function setupRendererAndScene() {
       'cameraRotation',
       JSON.stringify(camGral.rotation.toArray())
     );
-    if (controls && controls.target) {
+    if (camGralControls && camGralControls.target) {
       localStorage.setItem(
         'controlsTarget',
-        JSON.stringify(controls.target.toArray())
+        JSON.stringify(camGralControls.target.toArray())
       );
     }
   });
@@ -120,9 +145,9 @@ function setupRendererAndScene() {
     camGral.position.fromArray(JSON.parse(savedPosition));
   if (savedRotation)
     camGral.rotation.fromArray(JSON.parse(savedRotation));
-  if (controls && controls.target && savedTarget) {
-    controls.target.fromArray(JSON.parse(savedTarget));
-    controls.update();
+  if (camGralControls && camGralControls.target && savedTarget) {
+    camGralControls.target.fromArray(JSON.parse(savedTarget));
+    camGralControls.update();
   }
 
   window.addEventListener('resize', onResize);
@@ -188,7 +213,7 @@ function createAirport() {
   );
   camOrbitTower.position.set(20, 50, -24);
   scene.add(camOrbitTower);
-  const camOrbitTowerControls = new OrbitControls(
+  camOrbitTowerControls = new OrbitControls(
     camOrbitTower,
     renderer.domElement
   );
@@ -390,7 +415,7 @@ async function setupBoatAndBoatCameras() {
     .copy(boat.position)
     .add(camOrbitBoatOffset);
   scene.add(camOrbitBoat);
-  const camOrbitBoatControls = new OrbitControls(
+  camOrbitBoatControls = new OrbitControls(
     camOrbitBoat,
     renderer.domElement
   );
@@ -567,6 +592,13 @@ function setupEvents() {
       const idx = parseInt(e.key, 10) - 1;
       if (idx < cameras.length) {
         mainCamera = idx;
+        // disable orbit controls for other cameras
+        // and enable for the selected one
+        for (let i = 0; i < orbitControls.length; i++) {
+          if (orbitControls[i]) {
+            orbitControls[i].enabled = i === mainCamera;
+          }
+        }
       } else {
         mainCamera = Math.min(idx, cameras.length - 1);
       }
