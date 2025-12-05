@@ -41,6 +41,8 @@ const effectController = {
   exposure: 0.5, //renderer.toneMappingExposure,
 };
 const camerasFarClip = 10000;
+const groundResolution = 128;
+const RENDER_SCALE = 0.5;
 
 async function init() {
   container = document.getElementById('container3D');
@@ -72,6 +74,12 @@ function setupRendererAndScene() {
   scene = new THREE.Scene();
   container.appendChild(renderer.domElement);
   renderer.toneMappingExposure = effectController.exposure;
+  renderer.setSize(
+    container.offsetWidth * RENDER_SCALE,
+    container.offsetHeight * RENDER_SCALE,
+    false
+  );
+  renderer.setPixelRatio(RENDER_SCALE);
 
   camGral = new THREE.PerspectiveCamera(
     75,
@@ -226,8 +234,8 @@ async function setupEnvironment() {
     undefined,
     undefined,
     undefined,
-    128,
-    128,
+    groundResolution,
+    groundResolution,
     30,
     0.01
   );
