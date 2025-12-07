@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/Addons.js';
+import { TextureLoader, RepeatWrapping } from 'three';
 
 const controls = {};
 window.addEventListener('keydown', event => {
@@ -12,6 +13,19 @@ window.addEventListener('keyup', event => {
 export function BoatModel() {
   const pivot = new THREE.Group();
   const loader = new GLTFLoader();
+
+  const textureLoader = new TextureLoader();
+  const destructorTexture = textureLoader.load(
+    '/public/destructor_map.jpg'
+  );
+  destructorTexture.wrapS = RepeatWrapping;
+  destructorTexture.wrapT = RepeatWrapping;
+
+  const torretaTexture = textureLoader.load(
+    '/public/torreta_map.jpg'
+  );
+  torretaTexture.wrapS = RepeatWrapping;
+  torretaTexture.wrapT = RepeatWrapping;
 
   return new Promise((resolve, reject) => {
     loader.load(
@@ -29,6 +43,9 @@ export function BoatModel() {
             );
             boat.castShadow = true;
             boat.receiveShadow = true;
+            boat.material = new THREE.MeshStandardMaterial({
+              map: destructorTexture,
+            });
             pivot.add(boat);
           }
         });
@@ -37,6 +54,9 @@ export function BoatModel() {
             turret = node;
             turret.castShadow = true;
             turret.receiveShadow = true;
+            turret.material = new THREE.MeshStandardMaterial({
+              map: torretaTexture,
+            });
           }
         });
         turret.traverse(node => {
