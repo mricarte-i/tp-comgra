@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AirplaneController } from './airplaneController.js';
 import { AirplaneGeometry } from './airplaneModel.js';
 import { BaseScene } from './baseScene.js';
-import { createGround } from './terrain.js';
+import { createGround, createMenu } from './terrain.js';
 import { BoatModel } from './boat.js';
 import { CircleCurve3 } from './circleCurve.js';
 
@@ -90,6 +90,7 @@ async function init() {
       orbitControls[i].enabled = i === mainCamera;
     }
   }
+  createMenu();
   animate();
 }
 

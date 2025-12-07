@@ -1,16 +1,21 @@
 import * as THREE from 'three';
+import * as dat from 'dat.gui';
+
 import {
   vertexShader,
   fragmentShader,
   fragmentShaderRocky,
+  fragmentShaderBands,
 } from './helpers/shadersTexturadoProcedural.js';
 
 const textures = {
   tierra: { url: 'tierra.jpg', object: null },
   roca: { url: 'stone.jpg', object: null },
   pasto: { url: 'grass.jpg', object: null },
+  sand: { url: 'sand.jpg', object: null },
   //elevationMap1: { url: 'elevationMap1.png', object: null },
 };
+let material;
 
 const params = {
   windDirection: Math.PI / 2,
@@ -147,7 +152,6 @@ export async function createGround(
           const idx = (py * img.width + px) * 4;
           let heightValue = data[idx] / 255; // Use red channel
           if (heightValue < lowFilter) {
-            //console.log('Low height value filtered:', heightValue);
             heightValue = -0.5;
           }
           pos.setY(i, heightValue * scale); // Scale as needed
@@ -156,24 +160,12 @@ export async function createGround(
 
         geometry.computeVertexNormals();
 
-        const material = new THREE.RawShaderMaterial({
+        material = new THREE.RawShaderMaterial({
           uniforms: {
+            sandSampler: { value: textures.sand.object },
+            grassSampler: { value: textures.pasto.object },
             dirtSampler: { value: textures.tierra.object },
             rockSampler: { value: textures.roca.object },
-            grassSampler: { value: textures.pasto.object },
-            /*
-            // default wind direction vector (from params.windDirection angle)
-            windDirection: {
-              value: new THREE.Vector3(
-                Math.cos(params.windDirection),
-                0,
-                Math.sin(params.windDirection)
-              ),
-            },
-            sunDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
-            snowThresholdLow: { value: 12 },
-            snowThresholdHigh: { value: 20 },
-            */
             windDirection: {
               value: new THREE.Vector3(
                 Math.cos(params.windDirection),
@@ -184,24 +176,21 @@ export async function createGround(
             sunDirection: {
               value: sunDirection.clone().normalize(),
             },
-            // tune these to control where rock/dirt appear (example values)
-            rockThresholdLow: { value: 15.0 },
-            rockThresholdHigh: { value: 30.0 },
-            dirtThresholdLow: { value: 6.0 },
-            dirtThresholdHigh: { value: 18.0 },
-            // provide a default identity matrix so three.js can upload it
+            sandStart: { value: -22.1 },
+            sandEnd: { value: -14.3 },
+            grassStart: { value: -1.3 },
+            grassEnd: { value: 2.0 },
+            dirtStart: { value: 6.0 },
+            dirtEnd: { value: 18.0 },
+            rockStart: { value: 15.0 },
+            rockEnd: { value: 25.0 },
             worldNormalMatrix: { value: new THREE.Matrix4() },
           },
           vertexShader: vertexShader,
-          fragmentShader: fragmentShaderRocky,
-          //fragmentShader,
+          fragmentShader: fragmentShaderBands,
           side: THREE.DoubleSide,
         });
-        /*new THREE.MeshPhongMaterial({
-            color: 0x228833,
-            //wireframe: true,
-          });
-          */
+
         const mesh = new THREE.Mesh(geometry, material);
         material.needsUpdate = true;
         material.onBeforeRender = (
@@ -215,7 +204,6 @@ export async function createGround(
           m = m.transpose().invert();
           mesh.material.uniforms.worldNormalMatrix.value = m;
         };
-        //mesh.rotation.x = -Math.PI / 2;
         mesh.castShadow = mesh.receiveShadow = true;
         console.log('Ground mesh created:', mesh);
         resolve(mesh);
@@ -226,4 +214,38 @@ export async function createGround(
       }
     );
   });
+}
+
+export function createMenu() {
+  const gui = new dat.GUI({ width: 400 });
+
+  let mat = material;
+
+  gui
+    .add(params, 'windDirection', 0, Math.PI * 2)
+    .name('wind direction');
+  gui
+    .add(mat.uniforms.rockStart, 'value', -50, 50)
+    .name('rock start');
+  gui
+    .add(mat.uniforms.rockEnd, 'value', -50, 50)
+    .name('rock end');
+  gui
+    .add(mat.uniforms.dirtStart, 'value', -50, 50)
+    .name('dirt start');
+  gui
+    .add(mat.uniforms.dirtEnd, 'value', -50, 50)
+    .name('dirt end');
+  gui
+    .add(mat.uniforms.grassStart, 'value', -50, 50)
+    .name('grass start');
+  gui
+    .add(mat.uniforms.grassEnd, 'value', -50, 50)
+    .name('grass end');
+  gui
+    .add(mat.uniforms.sandStart, 'value', -50, 50)
+    .name('sand start');
+  gui
+    .add(mat.uniforms.sandEnd, 'value', -50, 50)
+    .name('sand end');
 }

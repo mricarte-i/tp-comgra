@@ -50,6 +50,12 @@ export const fragmentShader = `
     uniform sampler2D dirtSampler;
     uniform sampler2D rockSampler;
     uniform sampler2D grassSampler;
+    uniform sampler2D sandSampler;
+    // thresholds for sand and grass bands
+    uniform float sandThresholdLow;
+    uniform float sandThresholdHigh;
+    uniform float grassThresholdLow;
+    uniform float grassThresholdHigh;
 
     void main(void) {
 
@@ -116,13 +122,18 @@ export const fragmentShaderRocky = `
     uniform float rockThresholdHigh;  // full rock at/above this
     uniform float dirtThresholdLow;   // start of dirt influence
     uniform float dirtThresholdHigh;  // full dirt at/above this
-
+    uniform float sandThresholdLow;
+    uniform float sandThresholdHigh;
+    uniform float grassThresholdLow;
+    uniform float grassThresholdHigh;
+    
     uniform vec3 windDirection;
     uniform vec3 sunDirection;
 
     uniform sampler2D dirtSampler;
     uniform sampler2D rockSampler;
     uniform sampler2D grassSampler;
+    uniform sampler2D sandSampler;
 
     void main(void) {
 
@@ -130,6 +141,7 @@ export const fragmentShaderRocky = `
         vec3 grass = texture2D(grassSampler, uv).xyz;
         vec3 dirt = texture2D(dirtSampler, uv * 4.0).xyz;
         vec3 rock = texture2D(rockSampler, uv).xyz;
+        vec3 sand = texture2D(sandSampler, uv * 6.0).xyz;
 
         // geometry-based factors
         float verticallity = 1.0 - max(0.0, vNormal.y);
@@ -139,27 +151,96 @@ export const fragmentShaderRocky = `
         // Height-based bands
         float rockHeight = smoothstep(rockThresholdLow, rockThresholdHigh, vWorldPos.y);
         float dirtHeight = smoothstep(dirtThresholdLow, dirtThresholdHigh, vWorldPos.y);
+        float grassHeight = smoothstep(grassThresholdLow, grassThresholdHigh, vWorldPos.y);
+        float sandHeight = smoothstep(sandThresholdLow, sandThresholdHigh, vWorldPos.y);
 
-        // Make steeper slopes rockier as well
+        // Adjust sand to fade out more aggressively at mid-levels
+        float sandFactor = clamp(sandHeight * (1.0 - rockHeight) * (1.0 - grassHeight * 0.8), 0.0, 1.0);
+
+        // Grass should dominate mid-levels, fade near peaks and low levels
+        float grassFactor = clamp(grassHeight * (1.0 - rockHeight) * (1.0 - sandFactor * 0.5), 0.0, 1.0);
+
+        // Dirt should appear near peaks, fade below grass and sand
+        float dirtFactor = clamp(dirtHeight * (1.0 - rockHeight * 1.2) * (1.0 - grassFactor * 0.7), 0.0, 1.0);
+
+        // Rock should dominate at steep slopes and highest elevations
         float slopeRock = smoothstep(0.35, 0.75, verticallity);
-
-        // Final rock factor: combine height and slope influence
         float rockFactor = max(rockHeight, slopeRock * 0.85);
 
-        // Dirt should appear in a band below/around the rocky peak. Reduce dirt where rock dominates.
-        float dirtFactor = clamp(dirtHeight * (1.0 - rockFactor * 1.2), 0.0, 1.0);
+        // Mix grass + dirt by wind and height band, then apply grass banding
+        vec3 grassDirt = mix(grass, dirt, clamp(dirtFactor * 0.9 + grassFactor * 0.7, 0.0, 1.0));
 
-        // Wind can favor dirt over grass on exposed areas
-        float windFactor = smoothstep(0.5, 1.0, dot(vNormal, windDirection));
+        // Blend sand into the base (sand appears closer to low-elevation areas)
+        vec3 baseWithSand = mix(grassDirt, sand, sandFactor);
 
-        // Mix grass + dirt by wind and height band
-        vec3 grassDirt = mix(grass, dirt, clamp(windFactor * 0.7 + dirtFactor * 0.9, 0.0, 1.0));
-
-        // Blend rock on top of the grass/dirt base
-        vec3 base = mix(grassDirt, rock, rockFactor);
+        // Blend rock on top of the sand/grass/dirt base
+        vec3 base = mix(baseWithSand, rock, rockFactor);
 
         // Slight enhancement of color by light
         vec3 color = base * lightIntensity;
+
+        gl_FragColor = vec4(color, 1.0);
+    }
+`;
+
+export const fragmentShaderBands = `
+    precision mediump float;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vWorldPos;
+
+    // Height thresholds for texture bands
+    uniform float sandStart;
+    uniform float sandEnd;
+    uniform float grassStart;
+    uniform float grassEnd;
+    uniform float dirtStart;
+    uniform float dirtEnd;
+    uniform float rockStart;
+    uniform float rockEnd;
+
+    // Wind and light direction
+    uniform vec3 windDirection;
+    uniform vec3 sunDirection;
+
+    // Texture samplers
+    uniform sampler2D sandSampler;
+    uniform sampler2D grassSampler;
+    uniform sampler2D dirtSampler;
+    uniform sampler2D rockSampler;
+
+    void main(void) {
+        vec2 uv = vUv * 8.0;
+        vec3 sand = texture2D(sandSampler, uv * 6.0).xyz;
+        vec3 grass = texture2D(grassSampler, uv).xyz;
+        vec3 dirt = texture2D(dirtSampler, uv * 4.0).xyz;
+        vec3 rock = texture2D(rockSampler, uv).xyz;
+
+        // Geometry-based factors
+        float verticallity = 1.0 - max(0.0, vNormal.y);
+        float lightIntensity = 0.5 + 0.5 * max(0.0, dot(vNormal, sunDirection));
+
+        // Height-based bands
+        float sandFactor = smoothstep(sandStart, sandEnd, vWorldPos.y);
+        float grassFactor = smoothstep(grassStart, grassEnd, vWorldPos.y);
+        float dirtFactor = smoothstep(dirtStart, dirtEnd, vWorldPos.y);
+        float rockFactor = smoothstep(rockStart, rockEnd, vWorldPos.y);
+
+        // Adjust rock and dirt based on verticality
+        rockFactor = max(rockFactor, smoothstep(0.35, 0.75, verticallity));
+        dirtFactor *= (1.0 - rockFactor);
+
+        // Wind influence on dirt
+        float windFactor = smoothstep(0.5, 1.0, dot(vNormal, windDirection));
+        dirtFactor = mix(dirtFactor, dirtFactor * 1.2, windFactor);
+
+        // Blend textures
+        vec3 sandGrass = mix(sand, grass, grassFactor);
+        vec3 grassDirt = mix(sandGrass, dirt, dirtFactor);
+        vec3 finalBase = mix(grassDirt, rock, rockFactor);
+
+        // Apply lighting
+        vec3 color = finalBase * lightIntensity;
 
         gl_FragColor = vec4(color, 1.0);
     }
