@@ -209,6 +209,13 @@ export const fragmentShaderBands = `
     uniform sampler2D dirtSampler;
     uniform sampler2D rockSampler;
 
+    // Normal samplers
+    uniform sampler2D uSandNormal;
+    uniform sampler2D uGrassNormal;
+    uniform sampler2D uDirtNormal;
+    uniform sampler2D uRockNormal;
+    
+
     void main(void) {
         vec2 uv = vUv * 8.0;
         vec3 sand = texture2D(sandSampler, uv * 6.0).xyz;
@@ -238,6 +245,31 @@ export const fragmentShaderBands = `
         vec3 sandGrass = mix(sand, grass, grassFactor);
         vec3 grassDirt = mix(sandGrass, dirt, dirtFactor);
         vec3 finalBase = mix(grassDirt, rock, rockFactor);
+
+        // Normal mapping
+        vec3 sandNormal = texture2D(uSandNormal, uv * 6.0).xyz;
+        vec3 grassNormal = texture2D(uGrassNormal, uv).xyz;
+        vec3 dirtNormal = texture2D(uDirtNormal, uv * 4.0).xyz;
+        vec3 rockNormal = texture2D(uRockNormal, uv).xyz;
+
+        // Transform normal map values from [0, 1] to [-1, 1]
+        sandNormal = normalize(sandNormal * 2.0 - 1.0);
+        grassNormal = normalize(grassNormal * 2.0 - 1.0);
+        dirtNormal = normalize(dirtNormal * 2.0 - 1.0);
+        rockNormal = normalize(rockNormal * 2.0 - 1.0);
+
+        // Blend normals based on terrain factors
+        vec3 blendedNormal = mix(
+            mix(sandNormal, grassNormal, smoothstep(sandStart, sandEnd, vWorldPos.y)),
+            mix(dirtNormal, rockNormal, smoothstep(grassStart, grassEnd, vWorldPos.y)),
+            smoothstep(rockStart, rockEnd, vWorldPos.y)
+        );
+
+        // Combine blended normal with geometry normal
+        vec3 finalNormal = normalize(vNormal + blendedNormal);
+
+        // Lighting calculations
+        lightIntensity = 0.5 + 0.5 * max(0.0, dot(finalNormal, sunDirection));
 
         // Apply lighting
         vec3 color = finalBase * lightIntensity;

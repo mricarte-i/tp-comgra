@@ -13,6 +13,10 @@ const textures = {
   roca: { url: 'stone.jpg', object: null },
   pasto: { url: 'grass.jpg', object: null },
   sand: { url: 'sand.jpg', object: null },
+  tierraNormal: { url: 'tierra-normal.jpg', object: null },
+  rocaNormal: { url: 'stone-normal.jpg', object: null },
+  pastoNormal: { url: 'grass-normal.jpg', object: null },
+  sandNormal: { url: 'sand-normal.jpg', object: null },
   //elevationMap1: { url: 'elevationMap1.png', object: null },
 };
 let material;
@@ -166,6 +170,14 @@ export async function createGround(
             grassSampler: { value: textures.pasto.object },
             dirtSampler: { value: textures.tierra.object },
             rockSampler: { value: textures.roca.object },
+            uSandSampler: { value: textures.sandNormal.object },
+            uGrassSampler: {
+              value: textures.pastoNormal.object,
+            },
+            uDirtSampler: {
+              value: textures.tierraNormal.object,
+            },
+            uRockSampler: { value: textures.rocaNormal.object },
             windDirection: {
               value: new THREE.Vector3(
                 Math.cos(params.windDirection),
