@@ -117,6 +117,14 @@ export const fragmentShaderRocky = `
     uniform float dirtThresholdLow;   // start of dirt influence
     uniform float dirtThresholdHigh;  // full dirt at/above this
 
+    // Heightmap used both to displace geometry and to generate per-pixel normals
+    uniform sampler2D heightSampler;
+    uniform float heightScale; // same vertical scale used to displace vertices
+    uniform float normalStrength; // how strong the normal-map perturbation is
+    // texel size of the heightmap and world terrain size (used to convert UV derivatives to world units)
+    uniform vec2 heightMapTexelSize;
+    uniform vec2 terrainSize;
+
     uniform vec3 windDirection;
     uniform vec3 sunDirection;
 
@@ -126,15 +134,44 @@ export const fragmentShaderRocky = `
 
     void main(void) {
 
-        vec2 uv = vUv * 8.0;
-        vec3 grass = texture2D(grassSampler, uv).xyz;
-        vec3 dirt = texture2D(dirtSampler, uv * 4.0).xyz;
-        vec3 rock = texture2D(rockSampler, uv).xyz;
+    vec2 uv = vUv * 8.0;
+    vec3 grass = texture2D(grassSampler, uv).xyz;
+    vec3 dirt = texture2D(dirtSampler, uv * 4.0).xyz;
+    vec3 rock = texture2D(rockSampler, uv).xyz;
+
+    // --- normal mapping from heightmap (per-pixel) using finite differences ---
+    // Sample neighboring texels to approximate derivatives. Expects the following uniforms:
+    // heightMapTexelSize = vec2(1.0/texWidth, 1.0/texHeight)
+    // terrainSize = vec2(worldWidth, worldHeight)
+    vec2 texel = heightMapTexelSize;
+    float hL = texture2D(heightSampler, vUv - vec2(texel.x, 0.0)).r;
+    float hR = texture2D(heightSampler, vUv + vec2(texel.x, 0.0)).r;
+    float hD = texture2D(heightSampler, vUv - vec2(0.0, texel.y)).r;
+    float hU = texture2D(heightSampler, vUv + vec2(0.0, texel.y)).r;
+
+    // derivative with respect to UV coords
+    float dhdu = (hR - hL) * 0.5 / texel.x;
+    float dhdv = (hU - hD) * 0.5 / texel.y;
+
+    // convert to world-space derivatives: dh/dx_world = dh/du * (heightScale / terrainWidth)
+    float dhdx_world = dhdu * (heightScale / terrainSize.x) * normalStrength;
+    float dhdy_world = dhdv * (heightScale / terrainSize.y) * normalStrength;
+
+    // Build a tangent/bitangent basis from the interpolated geometric normal
+    vec3 n_geo = normalize(vNormal);
+    vec3 tangent = normalize(cross(vec3(0.0, 1.0, 0.0), n_geo));
+    if (length(tangent) < 0.0001) tangent = vec3(1.0, 0.0, 0.0);
+    vec3 bitangent = normalize(cross(n_geo, tangent));
+
+    // Build a tangent-space normal from world derivatives and transform to world space
+    vec3 n_tspace = normalize(vec3(-dhdx_world, 1.0, -dhdy_world));
+    vec3 perturbedNormal = normalize(n_tspace.x * tangent + n_tspace.y * n_geo + n_tspace.z * bitangent);
 
         // geometry-based factors
-        float verticallity = 1.0 - max(0.0, vNormal.y);
-        float flatness = 1.0 - verticallity;
-        float lightIntensity = 0.5 + 0.5 * max(0.0, dot(vNormal, sunDirection));
+    // use perturbedNormal for lighting evaluations
+    float verticallity = 1.0 - max(0.0, perturbedNormal.y);
+    float flatness = 1.0 - verticallity;
+    float lightIntensity = 0.5 + 0.5 * max(0.0, dot(perturbedNormal, sunDirection));
 
         // Height-based bands
         float rockHeight = smoothstep(rockThresholdLow, rockThresholdHigh, vWorldPos.y);

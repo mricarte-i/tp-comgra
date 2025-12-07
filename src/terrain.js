@@ -189,6 +189,21 @@ export async function createGround(
             rockThresholdHigh: { value: 30.0 },
             dirtThresholdLow: { value: 6.0 },
             dirtThresholdHigh: { value: 18.0 },
+            // heightmap and normal-map related uniforms
+            heightSampler: { value: texture },
+            heightScale: { value: scale },
+            normalStrength: { value: 0.25 },
+            // texel size for the heightmap (1/width, 1/height)
+            heightMapTexelSize: {
+              value: new THREE.Vector2(
+                1 / img.width,
+                1 / img.height
+              ),
+            },
+            // terrain world size (used to convert UV derivatives to world-space)
+            terrainSize: {
+              value: new THREE.Vector2(width, height),
+            },
             // provide a default identity matrix so three.js can upload it
             worldNormalMatrix: { value: new THREE.Matrix4() },
           },
