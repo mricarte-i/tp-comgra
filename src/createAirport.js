@@ -1,0 +1,160 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+// helper to load a texture as a Promise
+function loadTextureAsync(path) {
+  return new Promise((resolve, reject) => {
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      path,
+      tex => resolve(tex),
+      undefined,
+      err => reject(err)
+    );
+  });
+}
+
+// Async factory to create the airport. Returns an object with
+// camRunway, camOrbitTower, camOrbitTowerControls, antennaLight.
+export async function createAirport(
+  scene,
+  renderer,
+  camerasFarClip
+) {
+  const airport = new THREE.Mesh(
+    new THREE.BoxGeometry(25, 10, 40),
+    new THREE.MeshPhongMaterial({ color: 0x888888 })
+  );
+  airport.position.set(130, -3.8, 64);
+  scene.add(airport);
+
+  // create runway material and attempt to apply a texture from /maps
+  let runwayMaterial = new THREE.MeshPhongMaterial({
+    //color: 0x333333,
+  });
+  try {
+    const tex = await loadTextureAsync('/airport/runway.jpg');
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(1, 4);
+
+    const normalMap = await loadTextureAsync(
+      '/airport/runway-normal.jpg'
+    );
+    normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
+    normalMap.repeat.set(1, 4);
+
+    runwayMaterial.normalMap = normalMap;
+    runwayMaterial.map = tex;
+    runwayMaterial.needsUpdate = true;
+  } catch (e) {
+    console.warn(
+      'Failed to load runway texture, using solid color',
+      e
+    );
+  }
+
+  const runway = new THREE.Mesh(
+    new THREE.BoxGeometry(10, 10, 60),
+    runwayMaterial
+  );
+  runway.position.set(8.5, 0.5, 0.5);
+  airport.add(runway);
+
+  // runway wrapper
+  const runwayWrapper = new THREE.Mesh(
+    new THREE.BoxGeometry(11, 9, 61),
+    new THREE.MeshPhongMaterial({ color: 0x222222 })
+  );
+  runwayWrapper.position.set(8.5, 0.75, 0.5);
+  airport.add(runwayWrapper);
+
+  // camera overlooking runway
+  const camRunway = new THREE.PerspectiveCamera(
+    40,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    camerasFarClip
+  );
+  camRunway.position.set(138, 100, 68);
+  camRunway.lookAt(new THREE.Vector3(138, 0, 68));
+  scene.add(camRunway);
+
+  const tower = new THREE.Mesh(
+    new THREE.CylinderGeometry(1, 2, 8, 8),
+    new THREE.MeshPhongMaterial({ color: 0x555555 })
+  );
+  tower.position.set(-6, 7.5, -16);
+  airport.add(tower);
+  const towerTop = new THREE.Mesh(
+    new THREE.CylinderGeometry(2.5, 1.5, 1.5, 8),
+    new THREE.MeshPhongMaterial({ color: 0x777777 })
+  );
+  towerTop.position.set(0, 4.5, 0);
+  tower.add(towerTop);
+  const towerAntenna = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.1, 3, 8),
+    new THREE.MeshPhongMaterial({ color: 0x222222 })
+  );
+  towerAntenna.position.set(0, 2.5, 0);
+  towerTop.add(towerAntenna);
+  const antennaLight = new THREE.PointLight(0xffaa00, 1, 50);
+  antennaLight.castShadow = true;
+  antennaLight.position.set(0, 1.5, 0);
+  towerAntenna.add(antennaLight);
+
+  // camera with orbit controls on tower
+  const camOrbitTower = new THREE.PerspectiveCamera(
+    90,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    camerasFarClip
+  );
+  camOrbitTower.position.set(20, 50, -24);
+  scene.add(camOrbitTower);
+  const camOrbitTowerControls = new OrbitControls(
+    camOrbitTower,
+    renderer.domElement
+  );
+  const towerTarget = new THREE.Vector3();
+  tower.getWorldPosition(towerTarget);
+  camOrbitTowerControls.target.copy(towerTarget);
+  camOrbitTowerControls.update();
+
+  const hangars = new THREE.Group();
+  function createHangar() {
+    const hangarBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(3, 3, 6, 16),
+      new THREE.MeshPhongMaterial({
+        color: 0x999999,
+        side: THREE.DoubleSide,
+      })
+    );
+    hangarBase.rotation.set(0, 0, Math.PI / 2);
+    return hangarBase;
+  }
+  for (let i = 0; i < 3; i++) {
+    const hangar = createHangar();
+    hangar.position.set(-10, 5, 15 + i * 7);
+    hangars.add(hangar);
+  }
+  hangars.position.set(4, 0, -16);
+  airport.add(hangars);
+
+  [
+    airport,
+    runway,
+    tower,
+    towerTop,
+    towerAntenna,
+    ...hangars.children,
+  ].forEach(m => {
+    m.castShadow = m.receiveShadow = true;
+  });
+
+  return {
+    camRunway,
+    camOrbitTower,
+    camOrbitTowerControls,
+    antennaLight,
+  };
+}

@@ -4,6 +4,7 @@ import { AirplaneController } from './airplaneController.js';
 import { AirplaneGeometry } from './airplaneModel.js';
 import { BaseScene } from './baseScene.js';
 import { createGround, createMenu } from './terrain.js';
+import { createAirport } from './createAirport.js';
 import { BoatModel } from './boat.js';
 import { CircleCurve3 } from './circleCurve.js';
 
@@ -156,104 +157,7 @@ function setupRendererAndScene() {
 }
 
 let antennaLight;
-function createAirport() {
-  const airport = new THREE.Mesh(
-    new THREE.BoxGeometry(25, 10, 40),
-    new THREE.MeshPhongMaterial({ color: 0x888888 })
-  );
-  airport.position.set(130, -3.8, 64);
-  scene.add(airport);
-
-  const runway = new THREE.Mesh(
-    new THREE.BoxGeometry(10, 10, 60),
-    new THREE.MeshPhongMaterial({ color: 0x333333 })
-  );
-  runway.position.set(8.5, 0.5, 0.5);
-  airport.add(runway);
-
-  // camera overlooking runway
-  camRunway = new THREE.PerspectiveCamera(
-    40,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    camerasFarClip
-  );
-  camRunway.position.set(138, 100, 68);
-  camRunway.lookAt(new THREE.Vector3(138, 0, 68));
-  scene.add(camRunway);
-
-  const tower = new THREE.Mesh(
-    new THREE.CylinderGeometry(1, 2, 8, 8),
-    new THREE.MeshPhongMaterial({ color: 0x555555 })
-  );
-  tower.position.set(-6, 7.5, -16);
-  airport.add(tower);
-  const towerTop = new THREE.Mesh(
-    new THREE.CylinderGeometry(2.5, 1.5, 1.5, 8),
-    new THREE.MeshPhongMaterial({ color: 0x777777 })
-  );
-  towerTop.position.set(0, 4.5, 0);
-  tower.add(towerTop);
-  const towerAntenna = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.1, 0.1, 3, 8),
-    new THREE.MeshPhongMaterial({ color: 0x222222 })
-  );
-  towerAntenna.position.set(0, 2.5, 0);
-  towerTop.add(towerAntenna);
-  antennaLight = new THREE.PointLight(0xffaa00, 1, 50);
-  antennaLight.castShadow = true;
-  antennaLight.position.set(0, 1.5, 0);
-  towerAntenna.add(antennaLight);
-
-  // camera with orbit controls on tower
-  camOrbitTower = new THREE.PerspectiveCamera(
-    90,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    camerasFarClip
-  );
-  camOrbitTower.position.set(20, 50, -24);
-  scene.add(camOrbitTower);
-  camOrbitTowerControls = new OrbitControls(
-    camOrbitTower,
-    renderer.domElement
-  );
-  const towerTarget = new THREE.Vector3();
-  tower.getWorldPosition(towerTarget);
-  camOrbitTowerControls.target.copy(towerTarget);
-  camOrbitTowerControls.update();
-
-  const hangars = new THREE.Group();
-  function createHangar() {
-    const hangarBase = new THREE.Mesh(
-      new THREE.CylinderGeometry(3, 3, 6, 16),
-      new THREE.MeshPhongMaterial({
-        color: 0x999999,
-        side: THREE.DoubleSide,
-      })
-    );
-    hangarBase.rotation.set(0, 0, Math.PI / 2);
-    return hangarBase;
-  }
-  for (let i = 0; i < 3; i++) {
-    const hangar = createHangar();
-    hangar.position.set(-10, 5, 15 + i * 7);
-    hangars.add(hangar);
-  }
-  hangars.position.set(4, 0, -16);
-  airport.add(hangars);
-
-  [
-    airport,
-    runway,
-    tower,
-    towerTop,
-    towerAntenna,
-    ...hangars.children,
-  ].forEach(m => {
-    m.castShadow = m.receiveShadow = true;
-  });
-}
+// createAirport has been moved to its own module (src/createAirport.js)
 
 async function setupEnvironment() {
   // compute sun direction from effectController (same formulas used in BaseScene)
@@ -323,7 +227,16 @@ async function setupEnvironment() {
   wavesGroup.position.set(200, 1, 0);
   scene.add(wavesGroup);
 
-  createAirport();
+  // create airport in separate module and collect returned cameras/light
+  const _airport = await createAirport(
+    scene,
+    renderer,
+    camerasFarClip
+  );
+  camRunway = _airport.camRunway;
+  camOrbitTower = _airport.camOrbitTower;
+  camOrbitTowerControls = _airport.camOrbitTowerControls;
+  antennaLight = _airport.antennaLight;
 
   const sphereGeo = new THREE.SphereGeometry(0.5, 8, 8);
   const sphereMat = new THREE.MeshPhongMaterial({
