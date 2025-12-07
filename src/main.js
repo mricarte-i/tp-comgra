@@ -255,6 +255,17 @@ function createAirport() {
 }
 
 async function setupEnvironment() {
+  // compute sun direction from effectController (same formulas used in BaseScene)
+  const phi = THREE.MathUtils.degToRad(
+    90 - effectController.elevation
+  );
+  const theta = THREE.MathUtils.degToRad(
+    effectController.azimuth
+  );
+  const sunDir = new THREE.Vector3()
+    .setFromSphericalCoords(1, phi, theta)
+    .normalize();
+
   const ground = await createGround(
     undefined,
     undefined,
@@ -262,7 +273,8 @@ async function setupEnvironment() {
     groundResolution,
     groundResolution,
     30,
-    0.01
+    0.01,
+    sunDir
   );
   ground.position.set(0, -2, 0);
   scene.add(ground);

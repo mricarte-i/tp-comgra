@@ -1,4 +1,67 @@
 import * as THREE from 'three';
+import {
+  vertexShader,
+  fragmentShader,
+  fragmentShaderRocky,
+} from './helpers/shadersTexturadoProcedural.js';
+
+const textures = {
+  tierra: { url: 'tierra.jpg', object: null },
+  roca: { url: 'stone.jpg', object: null },
+  pasto: { url: 'grass.jpg', object: null },
+  //elevationMap1: { url: 'elevationMap1.png', object: null },
+};
+
+const params = {
+  windDirection: Math.PI / 2,
+};
+
+// Load textures from the public `maps` folder and return a Promise that
+// resolves when all textures are ready. If textures are already loaded,
+// this resolves immediately.
+export function loadTexturesAsync() {
+  // If already loaded, resolve immediately
+  let allLoaded = true;
+  for (const k in textures) {
+    if (!textures[k].object) {
+      allLoaded = false;
+      break;
+    }
+  }
+  if (allLoaded) return Promise.resolve(textures);
+
+  return new Promise((resolve, reject) => {
+    const loadingManager = new THREE.LoadingManager();
+
+    loadingManager.onLoad = () => {
+      console.log('All textures loaded');
+      resolve(textures);
+    };
+
+    loadingManager.onError = url => {
+      console.warn('Texture loading error for:', url);
+      // don't reject the whole promise on single texture error; resolve anyway
+    };
+
+    for (const key in textures) {
+      const loader = new THREE.TextureLoader(loadingManager);
+      const texture = textures[key];
+      loader.load(
+        '/maps/' + texture.url,
+        tex => {
+          tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+          textures[key].object = tex;
+          console.log(`Texture ${key} loaded`);
+        },
+        undefined,
+        err => {
+          console.error('Error loading texture', key, err);
+          // keep going; LoadingManager will still call onLoad when done
+        }
+      );
+    }
+  });
+}
 
 export async function createGround(
   path = '/public/heightmap.png',
@@ -7,7 +70,9 @@ export async function createGround(
   widthSegments = 256,
   heightSegments = 256,
   scale = 20,
-  lowFilter = 10
+  lowFilter = 10,
+  // optional sun direction vector so the terrain uses the same sun as the scene
+  sunDirection = new THREE.Vector3(1, 1, 1)
 ) {
   const geometry = new THREE.BufferGeometry();
 
@@ -46,6 +111,13 @@ export async function createGround(
   );
   geometry.setIndex(indices);
 
+  // Ensure textures are loaded before we create materials that use them
+  try {
+    await loadTexturesAsync();
+  } catch (e) {
+    console.warn('Error while waiting for textures:', e);
+  }
+
   // Load heightmap using TextureLoader
   const loader = new THREE.TextureLoader();
   return new Promise((resolve, reject) => {
@@ -76,7 +148,7 @@ export async function createGround(
           let heightValue = data[idx] / 255; // Use red channel
           if (heightValue < lowFilter) {
             //console.log('Low height value filtered:', heightValue);
-            heightValue = -10;
+            heightValue = -0.5;
           }
           pos.setY(i, heightValue * scale); // Scale as needed
         }
@@ -84,14 +156,68 @@ export async function createGround(
 
         geometry.computeVertexNormals();
 
-        const material = new THREE.MeshPhongMaterial({
-          color: 0x228833,
-          //wireframe: true,
+        const material = new THREE.RawShaderMaterial({
+          uniforms: {
+            dirtSampler: { value: textures.tierra.object },
+            rockSampler: { value: textures.roca.object },
+            grassSampler: { value: textures.pasto.object },
+            /*
+            // default wind direction vector (from params.windDirection angle)
+            windDirection: {
+              value: new THREE.Vector3(
+                Math.cos(params.windDirection),
+                0,
+                Math.sin(params.windDirection)
+              ),
+            },
+            sunDirection: { value: new THREE.Vector3(1, 1, 1).normalize() },
+            snowThresholdLow: { value: 12 },
+            snowThresholdHigh: { value: 20 },
+            */
+            windDirection: {
+              value: new THREE.Vector3(
+                Math.cos(params.windDirection),
+                0,
+                Math.sin(params.windDirection)
+              ),
+            },
+            sunDirection: {
+              value: sunDirection.clone().normalize(),
+            },
+            // tune these to control where rock/dirt appear (example values)
+            rockThresholdLow: { value: 15.0 },
+            rockThresholdHigh: { value: 30.0 },
+            dirtThresholdLow: { value: 6.0 },
+            dirtThresholdHigh: { value: 18.0 },
+            // provide a default identity matrix so three.js can upload it
+            worldNormalMatrix: { value: new THREE.Matrix4() },
+          },
+          vertexShader: vertexShader,
+          fragmentShader: fragmentShaderRocky,
+          //fragmentShader,
+          side: THREE.DoubleSide,
         });
+        /*new THREE.MeshPhongMaterial({
+            color: 0x228833,
+            //wireframe: true,
+          });
+          */
         const mesh = new THREE.Mesh(geometry, material);
+        material.needsUpdate = true;
+        material.onBeforeRender = (
+          renderer,
+          scene,
+          camera,
+          geometry,
+          mesh
+        ) => {
+          let m = mesh.matrixWorld.clone();
+          m = m.transpose().invert();
+          mesh.material.uniforms.worldNormalMatrix.value = m;
+        };
         //mesh.rotation.x = -Math.PI / 2;
         mesh.castShadow = mesh.receiveShadow = true;
-
+        console.log('Ground mesh created:', mesh);
         resolve(mesh);
       },
       undefined,
