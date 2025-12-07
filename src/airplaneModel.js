@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ParametricGeometry } from 'three/examples/jsm/Addons.js';
+import { TextureLoader, RepeatWrapping } from 'three';
 
 // values and sizes
 const bodyLength = 6;
@@ -264,6 +265,646 @@ function FanBlades(color = 0x333333) {
   return engGroup;
 }
 
+// (old single-geometry helper removed) -- replaced by generateUVAtlas(meshes, options)
+function generateUVAtlas(meshes, options = {}) {
+  // meshes: array of THREE.Mesh
+  const size = options.size || 2048;
+  const padding = options.padding || 8; // padding inside each tile
+  const bgColor = options.bgColor || '#000000';
+  const lineColor = options.lineColor || '#31d14b'; // green outline
+  const bboxColor = options.bboxColor || '#ffffff';
+
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+
+  // background
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, size, size);
+
+  // flatten input: include child meshes of groups
+  const all = [];
+  (meshes || []).forEach(obj => {
+    if (!obj) return;
+    if (obj.isMesh) all.push(obj);
+    else if (obj.traverse) {
+      obj.traverse(c => {
+        if (c.isMesh) all.push(c);
+      });
+    }
+  });
+
+  // dedupe
+  const unique = Array.from(new Set(all)).filter(
+    m => m.geometry && m.geometry.isBufferGeometry
+  );
+  if (unique.length === 0) {
+    console.error(
+      'No valid meshes with BufferGeometry found to generate UV atlas.'
+    );
+    return;
+  }
+
+  const mapping = [];
+  const n = unique.length;
+  const cols = Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n / cols);
+  const tileW = Math.floor(size / cols);
+  const tileH = Math.floor(size / rows);
+
+  ctx.lineWidth = 1;
+
+  for (let i = 0; i < unique.length; i++) {
+    const mesh = unique[i];
+    const geom = mesh.geometry;
+    const uvAttr = geom.attributes.uv;
+    const posAttr = geom.attributes.position;
+    const idx = geom.index;
+
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const tileX = col * tileW;
+    const tileY = row * tileH;
+
+    // Draw tile background (slightly darker)
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(tileX, tileY, tileW, tileH);
+
+    const label =
+      mesh.name && mesh.name.length
+        ? mesh.name
+        : (mesh.userData && mesh.userData.label) || `mesh_${i}`;
+
+    if (!uvAttr || !posAttr) {
+      // fallback: generate planar UVs from positions projected to XZ
+      console.warn(
+        'Geometry missing UVs; generating planar UVs for mesh',
+        mesh.name
+      );
+      const positions = posAttr.array;
+      const uvs = new Float32Array((positions.length / 3) * 2);
+      // compute bbox in X and Z
+      let minX = Infinity,
+        maxX = -Infinity,
+        minZ = Infinity,
+        maxZ = -Infinity;
+      for (let j = 0; j < positions.length; j += 3) {
+        const x = positions[j];
+        const z = positions[j + 2];
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (z < minZ) minZ = z;
+        if (z > maxZ) maxZ = z;
+      }
+      const dx = maxX - minX || 1;
+      const dz = maxZ - minZ || 1;
+      for (
+        let j = 0, k = 0;
+        j < positions.length;
+        j += 3, k += 2
+      ) {
+        const x = positions[j];
+        const z = positions[j + 2];
+        uvs[k] = (x - minX) / dx;
+        uvs[k + 1] = (z - minZ) / dz;
+      }
+      // compute uv bbox for labeling
+      let minU_f = Infinity,
+        maxU_f = -Infinity,
+        minV_f = Infinity,
+        maxV_f = -Infinity;
+      for (let jj = 0; jj < uvs.length; jj += 2) {
+        const uu = uvs[jj];
+        const vv = uvs[jj + 1];
+        if (uu < minU_f) minU_f = uu;
+        if (uu > maxU_f) maxU_f = uu;
+        if (vv < minV_f) minV_f = vv;
+        if (vv > maxV_f) maxV_f = vv;
+      }
+      if (!isFinite(minU_f)) {
+        minU_f = 0;
+        maxU_f = 1;
+        minV_f = 0;
+        maxV_f = 1;
+      }
+      // use this generated array when drawing below
+      drawTrianglesFromUVArray(
+        ctx,
+        uvs,
+        geom.index ? geom.index.array : null,
+        tileX,
+        tileY,
+        tileW,
+        tileH,
+        padding,
+        lineColor
+      );
+      // draw bbox
+      drawTileBBox(ctx, tileX, tileY, tileW, tileH, bboxColor);
+      // draw label for fallback mesh
+      try {
+        const fontSize = Math.max(10, Math.floor(tileH * 0.06));
+        ctx.font = `${fontSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const centerU_f = (minU_f + maxU_f) / 2;
+        const centerV_f = (minV_f + maxV_f) / 2;
+        const labelX =
+          tileX +
+          padding +
+          ((centerU_f - minU_f) / (maxU_f - minU_f || 1)) *
+            (tileW - padding * 2);
+        const labelY =
+          tileY +
+          padding +
+          (1 - (centerV_f - minV_f) / (maxV_f - minV_f || 1)) *
+            (tileH - padding * 2);
+        const label =
+          mesh.name && mesh.name.length
+            ? mesh.name
+            : (mesh.userData && mesh.userData.label) ||
+              `mesh_${i}`;
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = '#ffff66';
+        ctx.strokeText(label, labelX, labelY);
+        ctx.fillText(label, labelX, labelY);
+      } catch (e) {
+        /* ignore label errors */
+      }
+      // store mapping for this mesh
+      mapping.push({
+        uuid: mesh.uuid,
+        name: label,
+        tile: { x: tileX, y: tileY, w: tileW, h: tileH },
+        uvBBox: {
+          minU: minU_f,
+          maxU: maxU_f,
+          minV: minV_f,
+          maxV: maxV_f,
+        },
+        padding,
+      });
+      continue;
+    }
+
+    const uvs = uvAttr.array;
+    const indices = idx ? idx.array : null;
+
+    // compute UV bbox to scale islands to tile (preserve island shape)
+    let minU = Infinity,
+      maxU = -Infinity,
+      minV = Infinity,
+      maxV = -Infinity;
+    for (let j = 0; j < uvs.length; j += 2) {
+      const u = uvs[j];
+      const v = uvs[j + 1];
+      if (u < minU) minU = u;
+      if (u > maxU) maxU = u;
+      if (v < minV) minV = v;
+      if (v > maxV) maxV = v;
+    }
+    if (!isFinite(minU)) {
+      minU = 0;
+      maxU = 1;
+      minV = 0;
+      maxV = 1;
+    }
+
+    const uRange = maxU - minU || 1;
+    const vRange = maxV - minV || 1;
+
+    // transform and draw triangles
+    ctx.strokeStyle = lineColor;
+    if (indices) {
+      for (let j = 0; j < indices.length; j += 3) {
+        const a = indices[j];
+        const b = indices[j + 1];
+        const c = indices[j + 2];
+
+        const ax =
+          tileX +
+          padding +
+          ((uvs[a * 2] - minU) / uRange) * (tileW - padding * 2);
+        const ay =
+          tileY +
+          padding +
+          (1 - (uvs[a * 2 + 1] - minV) / vRange) *
+            (tileH - padding * 2);
+        const bx =
+          tileX +
+          padding +
+          ((uvs[b * 2] - minU) / uRange) * (tileW - padding * 2);
+        const by =
+          tileY +
+          padding +
+          (1 - (uvs[b * 2 + 1] - minV) / vRange) *
+            (tileH - padding * 2);
+        const cx =
+          tileX +
+          padding +
+          ((uvs[c * 2] - minU) / uRange) * (tileW - padding * 2);
+        const cy =
+          tileY +
+          padding +
+          (1 - (uvs[c * 2 + 1] - minV) / vRange) *
+            (tileH - padding * 2);
+
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+        ctx.lineTo(cx, cy);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    } else {
+      // non-indexed
+      for (let j = 0; j < uvs.length; j += 6) {
+        const ax =
+          tileX +
+          padding +
+          ((uvs[j] - minU) / uRange) * (tileW - padding * 2);
+        const ay =
+          tileY +
+          padding +
+          (1 - (uvs[j + 1] - minV) / vRange) *
+            (tileH - padding * 2);
+        const bx =
+          tileX +
+          padding +
+          ((uvs[j + 2] - minU) / uRange) * (tileW - padding * 2);
+        const by =
+          tileY +
+          padding +
+          (1 - (uvs[j + 3] - minV) / vRange) *
+            (tileH - padding * 2);
+        const cx =
+          tileX +
+          padding +
+          ((uvs[j + 4] - minU) / uRange) * (tileW - padding * 2);
+        const cy =
+          tileY +
+          padding +
+          (1 - (uvs[j + 5] - minV) / vRange) *
+            (tileH - padding * 2);
+
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(bx, by);
+        ctx.lineTo(cx, cy);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+
+    // draw bounding box for the island in white
+    drawTileBBox(ctx, tileX, tileY, tileW, tileH, bboxColor);
+
+    // draw name label centered on island
+    try {
+      const fontSize = Math.max(10, Math.floor(tileH * 0.06));
+      ctx.font = `${fontSize}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const centerU = (minU + maxU) / 2;
+      const centerV = (minV + maxV) / 2;
+      const labelX =
+        tileX +
+        padding +
+        ((centerU - minU) / (maxU - minU || 1)) *
+          (tileW - padding * 2);
+      const labelY =
+        tileY +
+        padding +
+        (1 - (centerV - minV) / (maxV - minV || 1)) *
+          (tileH - padding * 2);
+      const label =
+        mesh.name && mesh.name.length
+          ? mesh.name
+          : (mesh.userData && mesh.userData.label) ||
+            `mesh_${i}`;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#000000';
+      ctx.fillStyle = '#ffff66';
+      ctx.strokeText(label, labelX, labelY);
+      ctx.fillText(label, labelX, labelY);
+    } catch (e) {
+      /* ignore */
+    }
+    // store mapping for this mesh
+    mapping.push({
+      uuid: mesh.uuid,
+      name: label,
+      tile: { x: tileX, y: tileY, w: tileW, h: tileH },
+      uvBBox: { minU, maxU, minV, maxV },
+      padding,
+    });
+  }
+  const dataURL = canvas.toDataURL('image/png');
+  const image = new Image();
+  image.src = dataURL;
+  console.log('UV Atlas:', image);
+
+  // store atlas data & mapping globally for later download or application
+  window.__lastUVAtlas = {
+    dataURL,
+    mapping,
+    filename: options.filename || 'airplane_uv_atlas.png',
+    size,
+    padding,
+  };
+
+  console.log(
+    'UV atlas generated — press B to download or call applyUVAtlas(window.__lastUVAtlas, rootGroup) to apply it.'
+  );
+  return window.__lastUVAtlas;
+}
+
+// Press B to download last generated atlas (if present)
+window.addEventListener('keydown', e => {
+  try {
+    if (e.code === 'KeyB') {
+      const atlas = window.__lastUVAtlas;
+      if (!atlas) {
+        console.warn('No UV atlas available to download.');
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = atlas.dataURL;
+      a.download = atlas.filename || 'airplane_uv_atlas.png';
+      document.body.appendChild(a);
+      // use dispatchEvent for compatibility
+      a.dispatchEvent(new MouseEvent('click'));
+      document.body.removeChild(a);
+      downloadLastUVAtlasJSON();
+    }
+  } catch (err) {
+    console.warn(
+      'Failed to download UV atlas via keypress:',
+      err
+    );
+  }
+});
+
+// Apply a previously-generated atlas to meshes. atlas = window.__lastUVAtlas or returned object from generateUVAtlas
+export function applyUVAtlas(atlas, rootOrMeshes) {
+  if (!atlas) atlas = window.__lastUVAtlas;
+  if (!atlas) {
+    console.error('No atlas provided or available');
+    return;
+  }
+
+  // find meshes list
+  let meshes = [];
+  if (Array.isArray(rootOrMeshes)) meshes = rootOrMeshes;
+  else if (rootOrMeshes && rootOrMeshes.isObject3D) {
+    rootOrMeshes.traverse(c => {
+      if (c.isMesh) meshes.push(c);
+    });
+  } else if (!rootOrMeshes) {
+    console.warn(
+      'No root provided; attempting to use mapping UUIDs to find meshes in global scene'
+    );
+  }
+
+  // Create texture
+  const loader = new THREE.TextureLoader();
+  const texture = loader.load(atlas.dataURL, t => {
+    t.needsUpdate = true;
+  });
+  texture.flipY = false; // keep consistent with canvas orientation
+  texture.needsUpdate = true;
+
+  // helper to find mesh by uuid if not in meshes array
+  function findMeshByUUID(uuid) {
+    if (meshes.length) {
+      for (let m of meshes) if (m.uuid === uuid) return m;
+    }
+    // search the global document for Three objects is not reliable here; user should provide root
+    return null;
+  }
+
+  atlas.mapping.forEach((entry, idx) => {
+    const mesh =
+      findMeshByUUID(entry.uuid) || meshes[idx] || null;
+    if (!mesh) {
+      console.warn(
+        'Mesh for atlas entry not found locally:',
+        entry.name,
+        entry.uuid
+      );
+      return;
+    }
+
+    const geom = mesh.geometry;
+    if (!geom || !geom.attributes || !geom.attributes.uv) {
+      console.warn('Mesh has no UVs, skipping:', mesh.name);
+      return;
+    }
+
+    // save original UVs if not saved
+    if (!geom.attributes.uv_original) {
+      geom.setAttribute(
+        'uv_original',
+        geom.attributes.uv.clone()
+      );
+    }
+
+    const orig = geom.attributes.uv_original.array;
+    const newUVs = new Float32Array(orig.length);
+
+    const { minU, maxU, minV, maxV } = entry.uvBBox;
+    const uRange = maxU - minU || 1;
+    const vRange = maxV - minV || 1;
+
+    const tileX = entry.tile.x;
+    const tileY = entry.tile.y;
+    const tileW = entry.tile.w;
+    const tileH = entry.tile.h;
+    const pad = entry.padding || atlas.padding || 0;
+    const sizePx = atlas.size || 2048;
+
+    for (let i = 0; i < orig.length; i += 2) {
+      const u = orig[i];
+      const v = orig[i + 1];
+      // map original UV into tile using same transform as drawing
+      const pixelX =
+        tileX + pad + ((u - minU) / uRange) * (tileW - pad * 2);
+      const pixelY =
+        tileY +
+        pad +
+        (1 - (v - minV) / vRange) * (tileH - pad * 2);
+      const nu = pixelX / sizePx;
+      const nv = 1 - pixelY / sizePx; // three's UV v=0 bottom
+      newUVs[i] = nu;
+      newUVs[i + 1] = nv;
+    }
+
+    geom.setAttribute(
+      'uv',
+      new THREE.BufferAttribute(newUVs, 2)
+    );
+    if (mesh.material) {
+      mesh.material.map = texture;
+      mesh.material.needsUpdate = true;
+    }
+  });
+}
+
+// Download mapping JSON for the last generated atlas so you can re-use it later
+export function downloadLastUVAtlasJSON(
+  filename = 'airplane_uv_atlas.json'
+) {
+  const atlas = window.__lastUVAtlas;
+  if (!atlas) {
+    console.warn('No atlas available to export mapping.');
+    return;
+  }
+  const data = {
+    filename: atlas.filename,
+    size: atlas.size,
+    padding: atlas.padding,
+    mapping: atlas.mapping,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: 'application/json',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Apply an atlas texture loaded from a URL (or dataURL) using an atlasData object (mapping).
+// atlasData should be the object produced by generateUVAtlas (or the JSON you downloaded).
+export function applyUVAtlasFromURL(
+  atlasData,
+  url,
+  rootOrMeshes
+) {
+  if (!atlasData) {
+    console.error('No atlasData provided');
+    return;
+  }
+  const loader = new THREE.TextureLoader();
+  loader.load(
+    url,
+    texture => {
+      texture.flipY = false;
+      texture.needsUpdate = true;
+      // create a temporary atlas object shape expected by applyUVAtlas
+      const atlas = {
+        dataURL: url,
+        mapping: atlasData.mapping || atlasData,
+        filename: atlasData.filename || 'airplane_uv_atlas.png',
+        size: atlasData.size || atlasData.width || 2048,
+        padding: atlasData.padding || 0,
+      };
+      // if rootOrMeshes provided, pass it along; else leave for applyUVAtlas to attempt find
+      applyUVAtlas(atlas, rootOrMeshes);
+    },
+    undefined,
+    err => {
+      console.error('Failed to load atlas image from URL:', err);
+    }
+  );
+}
+
+function drawTileBBox(ctx, tileX, tileY, tileW, tileH, color) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(tileX + 1, tileY + 1, tileW - 2, tileH - 2);
+  ctx.restore();
+}
+
+function drawTrianglesFromUVArray(
+  ctx,
+  uvs,
+  indices,
+  tileX,
+  tileY,
+  tileW,
+  tileH,
+  padding,
+  lineColor
+) {
+  ctx.strokeStyle = lineColor;
+  const minU = 0,
+    minV = 0,
+    uRange = 1,
+    vRange = 1;
+  if (indices) {
+    for (let j = 0; j < indices.length; j += 3) {
+      const a = indices[j];
+      const b = indices[j + 1];
+      const c = indices[j + 2];
+      const ax =
+        tileX +
+        padding +
+        ((uvs[a * 2] - minU) / uRange) * (tileW - padding * 2);
+      const ay =
+        tileY +
+        padding +
+        (1 - uvs[a * 2 + 1]) * (tileH - padding * 2);
+      const bx =
+        tileX +
+        padding +
+        ((uvs[b * 2] - minU) / uRange) * (tileW - padding * 2);
+      const by =
+        tileY +
+        padding +
+        (1 - uvs[b * 2 + 1]) * (tileH - padding * 2);
+      const cx =
+        tileX +
+        padding +
+        ((uvs[c * 2] - minU) / uRange) * (tileW - padding * 2);
+      const cy =
+        tileY +
+        padding +
+        (1 - uvs[c * 2 + 1]) * (tileH - padding * 2);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.lineTo(cx, cy);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  } else {
+    for (let j = 0; j < uvs.length; j += 6) {
+      const ax =
+        tileX + padding + uvs[j] * (tileW - padding * 2);
+      const ay =
+        tileY +
+        padding +
+        (1 - uvs[j + 1]) * (tileH - padding * 2);
+      const bx =
+        tileX + padding + uvs[j + 2] * (tileW - padding * 2);
+      const by =
+        tileY +
+        padding +
+        (1 - uvs[j + 3]) * (tileH - padding * 2);
+      const cx =
+        tileX + padding + uvs[j + 4] * (tileW - padding * 2);
+      const cy =
+        tileY +
+        padding +
+        (1 - uvs[j + 5]) * (tileH - padding * 2);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.lineTo(cx, cy);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+}
+
 export function AirplaneGeometry() {
   const airplane = new THREE.Group();
 
@@ -407,13 +1048,30 @@ export function AirplaneGeometry() {
       : topLight.color;
   }
 
-  function updateFanRotation(time, speed) {
-    const angle = (time * speed) % (2 * Math.PI);
-    fan1.rotation.z = angle;
-    fan2.rotation.z = angle;
-    fan3.rotation.z = angle;
-    fan4.rotation.z = angle;
-  }
+  // Provide a convenience API object. Keep AirplaneGeometry synchronous — the
+  // applyAtlasFromURLs method is async and can be awaited by callers when needed.
+  const api = {
+    airplane,
+    updateFanRotation,
+    updateTopLight,
+    // convenience: fetch JSON mapping then load image and apply atlas to the airplane group
+    applyAtlasFromURLs: async function (jsonUrl, imgUrl) {
+      try {
+        const res = await fetch(jsonUrl);
+        if (!res.ok)
+          throw new Error(
+            `Failed to fetch atlas JSON: ${res.status}`
+          );
+        const atlasData = await res.json();
+        // apply using existing helper which will load the image and remap UVs
+        await applyUVAtlasFromURL(atlasData, imgUrl, airplane);
+        return true;
+      } catch (err) {
+        console.error('applyAtlasFromURLs failed:', err);
+        return false;
+      }
+    },
+  };
 
-  return { airplane, updateFanRotation, updateTopLight };
+  return api;
 }

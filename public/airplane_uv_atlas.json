@@ -1,0 +1,347 @@
+{
+  "filename": "airplane_uv_atlas.png",
+  "size": 2048,
+  "padding": 8,
+  "mapping": [
+    {
+      "uuid": "95484c29-b746-493e-8b16-1c4a920d3317",
+      "name": "mesh_0",
+      "tile": {
+        "x": 0,
+        "y": 0,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "ff7fdcff-f103-43fa-8809-4ff77d692df4",
+      "name": "mesh_1",
+      "tile": {
+        "x": 409,
+        "y": 0,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "e2a96441-d9b9-4b54-b9e4-5502c55867b8",
+      "name": "mesh_2",
+      "tile": {
+        "x": 818,
+        "y": 0,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "dc013d92-9e7f-4a07-ade2-156c38c17f71",
+      "name": "mesh_3",
+      "tile": {
+        "x": 1227,
+        "y": 0,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "2e69fc17-c688-4c43-b8b2-fc15167fe632",
+      "name": "mesh_4",
+      "tile": {
+        "x": 1636,
+        "y": 0,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "cebcc385-21b3-4c15-a9b1-cf2888d418b0",
+      "name": "mesh_5",
+      "tile": {
+        "x": 0,
+        "y": 512,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "7c916efd-84aa-4ddd-8d37-4421471a437f",
+      "name": "mesh_6",
+      "tile": {
+        "x": 409,
+        "y": 512,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "48095f8f-04db-4dd2-8e8c-812775de7cd4",
+      "name": "mesh_7",
+      "tile": {
+        "x": 818,
+        "y": 512,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "8954f95a-52cd-41a4-9a1e-4f85b84faa48",
+      "name": "mesh_8",
+      "tile": {
+        "x": 1227,
+        "y": 512,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "be66cdb5-9dc3-4387-ac8b-253184f63458",
+      "name": "mesh_9",
+      "tile": {
+        "x": 1636,
+        "y": 512,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "96ba948d-5941-4f6d-a639-967292776031",
+      "name": "mesh_10",
+      "tile": {
+        "x": 0,
+        "y": 1024,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "228fbef2-c7bb-4416-8c7c-71ce74c4c253",
+      "name": "mesh_11",
+      "tile": {
+        "x": 409,
+        "y": 1024,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "71b1dbc6-34c0-46c9-9885-aed981fb196b",
+      "name": "mesh_12",
+      "tile": {
+        "x": 818,
+        "y": 1024,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "b9de2660-c3fc-4bee-8882-90ed68d97e5a",
+      "name": "mesh_13",
+      "tile": {
+        "x": 1227,
+        "y": 1024,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "8c5b49bd-b616-4a58-abb0-d867bf52b675",
+      "name": "mesh_14",
+      "tile": {
+        "x": 1636,
+        "y": 1024,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "73c98ed3-addc-473d-841c-08b21527dfa6",
+      "name": "mesh_15",
+      "tile": {
+        "x": 0,
+        "y": 1536,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "a11b2d55-a95d-4f3a-99cc-a1ffefa755ed",
+      "name": "mesh_16",
+      "tile": {
+        "x": 409,
+        "y": 1536,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "94d003a8-a821-45ce-a24e-8b40dd481f21",
+      "name": "mesh_17",
+      "tile": {
+        "x": 818,
+        "y": 1536,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "4766ce33-e8d0-4d81-8e01-3e2b4c65e9dd",
+      "name": "mesh_18",
+      "tile": {
+        "x": 1227,
+        "y": 1536,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    },
+    {
+      "uuid": "7e00bbea-fb76-4933-ab16-1c871be91cd6",
+      "name": "mesh_19",
+      "tile": {
+        "x": 1636,
+        "y": 1536,
+        "w": 409,
+        "h": 512
+      },
+      "uvBBox": {
+        "minU": 0,
+        "maxU": 1,
+        "minV": 0,
+        "maxV": 1
+      },
+      "padding": 8
+    }
+  ]
+}
