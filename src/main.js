@@ -34,6 +34,7 @@ let camGralControls;
 let camOrbitBoatControls;
 let camOrbitTowerControls;
 
+let vcam;
 let airplane, updateFanRotation, updateTopLight;
 let boat, cannon, updateTurret;
 let controller;
@@ -337,18 +338,20 @@ async function setupBoatAndBoatCameras() {
     0.1,
     camerasFarClip
   );
-  camOrbitBoat.position
-    .copy(boat.position)
-    .add(camOrbitBoatOffset);
   scene.add(camOrbitBoat);
+  //virtual cam for orbit controls
+  vcam = new THREE.PerspectiveCamera(90, 1, 0.1, camerasFarClip);
+  vcam.position.copy(boat.position).add(camOrbitBoatOffset);
   camOrbitBoatControls = new OrbitControls(
-    camOrbitBoat,
+    vcam,
     renderer.domElement
   );
-  const initialTarget = new THREE.Vector3();
-  boat.getWorldPosition(initialTarget);
-  camOrbitBoatControls.target.copy(initialTarget);
-  camOrbitBoatControls.update();
+  camOrbitBoatControls.enableDamping = true;
+  camOrbitBoatControls.dampingFactor = 0.08;
+  camOrbitBoatControls.target.set(0, 0, 0);
+  camOrbitBoatControls.minDistance = 1.2;
+  camOrbitBoatControls.maxDistance = 200;
+  camOrbitBoatControls.enablePan = false;
   setupBoatAndBoatCameras._orbitControls = camOrbitBoatControls;
 
   // chase cam (attached to boat)
@@ -640,21 +643,30 @@ function updateBoat(dt) {
     );
     boat.quaternion.copy(q);
   }
+}
+function updateBoatChaseCam() {
+  camOrbitBoatControls.update();
+  const tmpSph = new THREE.Spherical();
+  const tmpOffset = new THREE.Vector3();
+  const objWorldPos = new THREE.Vector3();
+  const objWorldQuat = new THREE.Quaternion();
+  const upWorld = new THREE.Vector3(0, 1, 0);
 
-  const worldPos = new THREE.Vector3();
-  boat.getWorldPosition(worldPos);
+  tmpOffset.copy(vcam.position);
+  tmpSph.setFromVector3(tmpOffset);
 
-  // follow orbit camera smoothly
-  const desiredCamPos = worldPos.clone().add(camOrbitBoatOffset);
-  const damping = Math.min(1, dt * 2);
-  camOrbitBoat.position.lerp(desiredCamPos, damping);
+  tmpOffset.setFromSpherical(tmpSph);
 
-  // update orbit controls target
-  const controls = setupBoatAndBoatCameras._orbitControls;
-  if (controls) {
-    controls.target.copy(worldPos);
-    controls.update();
-  }
+  boat.getWorldQuaternion(objWorldQuat);
+  tmpOffset.applyQuaternion(objWorldQuat);
+
+  boat.getWorldPosition(objWorldPos);
+  camOrbitBoat.position.copy(objWorldPos).add(tmpOffset);
+
+  upWorld.set(0, 1, 0).applyQuaternion(objWorldQuat);
+  camOrbitBoat.up.copy(upWorld);
+
+  camOrbitBoat.lookAt(objWorldPos);
 }
 
 const explosionDuration = 1; // seconds
@@ -820,6 +832,7 @@ function animate() {
     updateTurret(dt, clock.elapsedTime);
   }
   updateBoat(dt);
+  updateBoatChaseCam();
   turretShooting(dt);
   updateExplosions(clock.elapsedTime);
 
