@@ -383,17 +383,17 @@ export function AirplaneGeometry() {
   airplane.add(headLight);
   headLight.position.set(0, -0.5, 2);
 
-  const wingLightL = new THREE.PointLight(0x00aaff, 30);
+  const wingLightL = new THREE.PointLight(0x00ff00, 20);
   wingLightL.castShadow = true;
   airplane.add(wingLightL);
   wingLightL.position.set(-2.5, 0.1, 0.1);
 
-  const wingLightR = new THREE.PointLight(0xffaa00, 30);
+  const wingLightR = new THREE.PointLight(0xff0000, 20);
   wingLightR.castShadow = true;
   airplane.add(wingLightR);
   wingLightR.position.set(2.5, 0.1, 0.1);
 
-  const topLight = new THREE.PointLight(0xff0000, 10);
+  const topLight = new THREE.PointLight(0xff0000, 5);
   topLight.castShadow = true;
   airplane.add(topLight);
   topLight.position.set(0, 0.5, -1.25);
