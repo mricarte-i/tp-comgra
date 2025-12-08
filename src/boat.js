@@ -16,7 +16,7 @@ export function BoatModel() {
 
   const textureLoader = new TextureLoader();
   const destructorTexture = textureLoader.load(
-    '/public/destructor_map.jpg'
+    '/public/destructor_map_color.jpg'
   );
   destructorTexture.wrapS = RepeatWrapping;
   destructorTexture.wrapT = RepeatWrapping;
@@ -43,6 +43,32 @@ export function BoatModel() {
             );
             boat.castShadow = true;
             boat.receiveShadow = true;
+
+            /*
+            custom UVs
+            const geo = boat.geometry;
+            geo.attributes.uv.needsUpdate = true;
+            let uvs = [];
+            for (let i = 0; i < geo.attributes.uv.count; i++) {
+              let u = geo.attributes.uv.getX(i);
+              let v = geo.attributes.uv.getY(i);
+              // get vertex positions
+              let x = geo.attributes.position.getX(i);
+              let y = geo.attributes.position.getY(i);
+              let z = geo.attributes.position.getZ(i);
+
+              // define UVs
+              u = x;
+              v = z;
+
+              uvs.push(u, v);
+            }
+            geo.setAttribute(
+              'uv',
+              new THREE.Float32BufferAttribute(uvs, 2)
+            );
+            */
+
             boat.material = new THREE.MeshStandardMaterial({
               map: destructorTexture,
             });
