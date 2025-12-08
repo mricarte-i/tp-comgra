@@ -160,7 +160,7 @@ function MainWingMesh() {
 
     // define UVs
     u = -x / 2 + 0.5;
-    v = -z / 2 + 0.5;
+    v = -z / 4 + 0.5;
 
     uvs.push(u, v);
   }
@@ -177,7 +177,7 @@ function MainWingMesh() {
   const material = new THREE.MeshPhongMaterial({
     //color: 0x8ac926,
     map: uvTexture,
-    flatShading: true,
+    //flatShading: true,
     //side: THREE.DoubleSide,
   });
   const mesh = new THREE.Mesh(geometry, material);
@@ -197,9 +197,35 @@ function TailWingMesh() {
     20,
     20
   );
+
+  let uvs = [];
+  for (let i = 0; i < geometry.attributes.uv.count; i++) {
+    let u = geometry.attributes.uv.getX(i);
+    let v = geometry.attributes.uv.getY(i);
+    // get vertex positions
+    let x = geometry.attributes.position.getX(i);
+    let y = geometry.attributes.position.getY(i);
+    let z = geometry.attributes.position.getZ(i);
+
+    // define UVs
+    u = -x * 2;
+    v = -z / 2 + 0.5;
+
+    uvs.push(u, v);
+  }
+  geometry.setAttribute(
+    'uv',
+    new THREE.Float32BufferAttribute(uvs, 2)
+  );
+  let uvTexture = new THREE.TextureLoader().load(
+    '/airplane/wing_map.jpg'
+  );
+  uvTexture.wrapS = THREE.RepeatWrapping;
+  uvTexture.wrapT = THREE.RepeatWrapping;
   const material = new THREE.MeshPhongMaterial({
-    color: 0xff6f91,
-    flatShading: true,
+    //color: 0xff6f91,
+    map: uvTexture,
+    //flatShading: true,
     //side: THREE.DoubleSide,
   });
   const mesh = new THREE.Mesh(geometry, material);
@@ -225,13 +251,38 @@ function TallTailWingMesh() {
     20,
     20
   );
+  let uvs = [];
+  for (let i = 0; i < geometry.attributes.uv.count; i++) {
+    let u = geometry.attributes.uv.getX(i);
+    let v = geometry.attributes.uv.getY(i);
+    // get vertex positions
+    let x = geometry.attributes.position.getX(i);
+    let y = geometry.attributes.position.getY(i);
+    let z = geometry.attributes.position.getZ(i);
+
+    // define UVs
+    u = -x * 2;
+    v = -z / 2 + 0.65;
+
+    uvs.push(u, v);
+  }
+  geometry.setAttribute(
+    'uv',
+    new THREE.Float32BufferAttribute(uvs, 2)
+  );
+  let uvTexture = new THREE.TextureLoader().load(
+    '/airplane/wing_map.jpg'
+  );
+  uvTexture.wrapS = THREE.RepeatWrapping;
+  uvTexture.wrapT = THREE.RepeatWrapping;
   const material = new THREE.MeshPhongMaterial({
-    color: 0xaf2bff,
-    flatShading: true,
+    map: uvTexture,
+    //flatShading: true,
     //side: THREE.DoubleSide,
   });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.rotation.z = Math.PI / 2;
+  mesh.rotation.x = -0.05;
   mesh.position.set(0, 0.5, 1.5);
   return mesh;
 }
@@ -296,8 +347,8 @@ function EngineMesh(
     let z = geometry.attributes.position.getZ(i);
 
     // define UVs
-    u = x;
-    v = z / 2;
+    u = -x + 0.5;
+    v = -z / 2 + 0.5;
 
     uvs.push(u, v);
   }
@@ -314,14 +365,14 @@ function EngineMesh(
     //color,
     map: uvTexture,
     //side: THREE.DoubleSide,
-    flatShading: true,
+    //flatShading: true,
   });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(0, -length, 0);
   return mesh;
 }
 
-function FanBlades(color = 0x333333) {
+function FanBlades(color = 0xcdcdcd) {
   const engGroup = new THREE.Group();
 
   // A few shapes for the fan blades
@@ -329,7 +380,7 @@ function FanBlades(color = 0x333333) {
   const bladeMaterial = new THREE.MeshPhongMaterial({
     color,
     //side: THREE.DoubleSide,
-    flatShading: true,
+    //flatShading: true,
   });
   for (let i = 0; i < 3; i++) {
     const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
@@ -388,14 +439,14 @@ export function AirplaneGeometry() {
   );
   airplane.add(en2);
 
-  const fan1 = FanBlades(0xdc143c);
+  const fan1 = FanBlades();
   fan1.position.set(
     -primaryEngineXOffset,
     primaryEngineYOffset,
     primaryEngineZOffset - 0.02
   );
   airplane.add(fan1);
-  const fan2 = FanBlades(0x1e90ff);
+  const fan2 = FanBlades();
   fan2.position.set(
     primaryEngineXOffset,
     primaryEngineYOffset,
@@ -434,14 +485,14 @@ export function AirplaneGeometry() {
   );
   airplane.add(en4);
 
-  const fan3 = FanBlades(0xffd700);
+  const fan3 = FanBlades();
   fan3.position.set(
     -secondaryEngineXOffset,
     primaryEngineYOffset,
     secondaryEngineZOffset - 0.02
   );
   airplane.add(fan3);
-  const fan4 = FanBlades(0x00ffff);
+  const fan4 = FanBlades();
   fan4.position.set(
     secondaryEngineXOffset,
     primaryEngineYOffset,
