@@ -42,8 +42,33 @@ function mainbody(u, v, target) {
 
 function MainBodyMesh() {
   const geometry = new ParametricGeometry(mainbody, 20, 20);
+  let uvs = [];
+  for (let i = 0; i < geometry.attributes.uv.count; i++) {
+    let u = geometry.attributes.uv.getX(i);
+    let v = geometry.attributes.uv.getY(i);
+    // get vertex positions
+    let x = geometry.attributes.position.getX(i);
+    let y = geometry.attributes.position.getY(i);
+    let z = geometry.attributes.position.getZ(i);
+
+    // define UVs
+    u = y / 6 + 0.5;
+    v = -z / 6 + 0.5;
+
+    uvs.push(u, v);
+  }
+  geometry.setAttribute(
+    'uv',
+    new THREE.Float32BufferAttribute(uvs, 2)
+  );
+  let uvTexture = new THREE.TextureLoader().load(
+    '/airplane/main_body.jpg'
+  );
+  uvTexture.wrapS = THREE.RepeatWrapping;
+  uvTexture.wrapT = THREE.RepeatWrapping;
   const material = new THREE.MeshPhongMaterial({
-    color: 0x2194ce,
+    //color: 0x2194ce,
+    map: uvTexture,
     side: THREE.FrontSide,
     //flatShading: true,
   });
@@ -123,8 +148,35 @@ function MainWingMesh() {
     20,
     20
   );
+
+  let uvs = [];
+  for (let i = 0; i < geometry.attributes.uv.count; i++) {
+    let u = geometry.attributes.uv.getX(i);
+    let v = geometry.attributes.uv.getY(i);
+    // get vertex positions
+    let x = geometry.attributes.position.getX(i);
+    let y = geometry.attributes.position.getY(i);
+    let z = geometry.attributes.position.getZ(i);
+
+    // define UVs
+    u = -x / 2 + 0.5;
+    v = -z / 2 + 0.5;
+
+    uvs.push(u, v);
+  }
+  geometry.setAttribute(
+    'uv',
+    new THREE.Float32BufferAttribute(uvs, 2)
+  );
+  let uvTexture = new THREE.TextureLoader().load(
+    '/airplane/wing_map.jpg'
+  );
+  uvTexture.wrapS = THREE.RepeatWrapping;
+  uvTexture.wrapT = THREE.RepeatWrapping;
+
   const material = new THREE.MeshPhongMaterial({
-    color: 0x8ac926,
+    //color: 0x8ac926,
+    map: uvTexture,
     flatShading: true,
     //side: THREE.DoubleSide,
   });
