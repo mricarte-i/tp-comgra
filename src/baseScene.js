@@ -1,8 +1,15 @@
 import * as THREE from 'three';
 //import { Sky } from 'three/addons/objects/Sky.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
+import { Water } from 'three/examples/jsm/objects/Water.js';
 
-export function BaseScene(scene, effectController) {
+export function BaseScene(
+  scene,
+  effectController,
+  subdivisions
+) {
+  scene.fog = new THREE.Fog(0xcccccc, 500, 1000);
+
   const sky = new Sky();
   sky.scale.setScalar(450000);
 
@@ -60,6 +67,30 @@ export function BaseScene(scene, effectController) {
   light.position.copy(sun);
   scene.add(light);
 
+  const water = new Water(
+    new THREE.PlaneGeometry(10000, 10000),
+    {
+      textureWidth: subdivisions,
+      textureHeight: subdivisions,
+      waterNormals: new THREE.TextureLoader().load(
+        '/waternormals.jpg',
+        function (texture) {
+          texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        }
+      ),
+      alpha: 1.0,
+      sunDirection: sun.clone(),
+      sunColor: lightColor(),
+      waterColor: 0x001e0f,
+      distortionScale: 3.7,
+      fog: scene.fog !== undefined,
+    }
+  );
+
+  water.rotation.x = -Math.PI / 2;
+  water.position.y = -1;
+  scene.add(water);
+
   // lets boost the ambient light a bit
   const ambientLight = new THREE.AmbientLight(0x666666, 1);
   scene.add(ambientLight);
@@ -70,6 +101,5 @@ export function BaseScene(scene, effectController) {
   const axes = new THREE.AxesHelper(3);
   scene.add(axes);
 
-  //scene.fog = new THREE.FogExp2(0xcce0ff, 0.0003);
-  scene.fog = new THREE.Fog(0xcccccc, 500, 1000);
+  return water;
 }

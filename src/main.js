@@ -54,11 +54,13 @@ const camerasFarClip = 1000;
 const groundResolution = 128;
 const RENDER_SCALE = 0.5;
 
+let water;
+
 async function init() {
   container = document.getElementById('container3D');
 
   setupRendererAndScene();
-  BaseScene(scene, effectController); // axis helper + default lights
+  water = BaseScene(scene, effectController, groundResolution); // axis helper + default lights
   await setupEnvironment();
   await setupAirplane();
   await setupBoatAndBoatCameras();
@@ -185,14 +187,6 @@ async function setupEnvironment() {
   ground.position.set(0, -2, 0);
   scene.add(ground);
 
-  const water = new THREE.Mesh(
-    new THREE.PlaneGeometry(10000, 10000),
-    new THREE.MeshPhongMaterial({ color: 0x0044ff })
-  );
-  water.rotation.x = -Math.PI / 2;
-  water.position.y = -1;
-  scene.add(water);
-
   // simple stylized waves
   function triangleGeo() {
     const vertices = new Float32Array([
@@ -249,7 +243,6 @@ async function setupEnvironment() {
   scene.add(cannonBall);
 
   // expose for updateWindWakerWaves closure
-  setupEnvironment._water = water;
   setupEnvironment._waves = wavesGroup;
   setupEnvironment._cannonBall = cannonBall;
   setupEnvironment._isShooting = false;
@@ -607,7 +600,6 @@ function updateHUD() {
 }
 
 function updateWindWakerWaves(time) {
-  const water = setupEnvironment._water;
   const waves = setupEnvironment._waves;
   const dist = airplane.position.distanceTo(water.position);
   const speed = controller.getStatus().speed;
@@ -803,8 +795,14 @@ function updateAirportLights(now) {
   antennaLight.intensity = intensity;
 }
 
+function updateWater(dt) {
+  water.material.uniforms['time'].value += dt * 0.1;
+}
+
 function animate() {
   const dt = Math.min(0.05, clock.getDelta());
+
+  updateWater(dt);
 
   //  airplane related stuff
   controller.update(dt);
