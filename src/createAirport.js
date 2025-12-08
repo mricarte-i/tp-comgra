@@ -79,18 +79,63 @@ export async function createAirport(
   camRunway.lookAt(new THREE.Vector3(138, 0, 68));
   scene.add(camRunway);
 
+  const matTowerTop = new THREE.MeshPhongMaterial({});
+  const matTowerTopRoof = new THREE.MeshPhongMaterial({});
+  try {
+    const windowTexture = await loadTextureAsync(
+      '/airport/tower-top-window.jpg'
+    );
+    windowTexture.wrapS = windowTexture.wrapT =
+      THREE.ClampToEdgeWrapping;
+    windowTexture.repeat.set(1, 1);
+
+    matTowerTop.map = windowTexture;
+    matTowerTop.needsUpdate = true;
+
+    const roofTexture = await loadTextureAsync(
+      '/airport/tower-top-wall.jpg'
+    );
+    const roofTextureNormal = await loadTextureAsync(
+      '/airport/tower-top-wall-normal.jpg'
+    );
+    roofTextureNormal.wrapS = roofTextureNormal.wrapT =
+      THREE.ClampToEdgeWrapping;
+    roofTextureNormal.repeat.set(1, 1);
+
+    roofTexture.wrapS = roofTexture.wrapT =
+      THREE.ClampToEdgeWrapping;
+    roofTexture.repeat.set(1, 1);
+
+    matTowerTopRoof.map = roofTexture;
+    matTowerTopRoof.normalMap = roofTextureNormal;
+    matTowerTopRoof.needsUpdate = true;
+  } catch (e) {
+    console.warn(
+      'Failed to load runway texture, using solid color',
+      e
+    );
+  }
   const tower = new THREE.Mesh(
     new THREE.CylinderGeometry(1, 2, 8, 8),
-    new THREE.MeshPhongMaterial({ color: 0x555555 })
+    matTowerTopRoof
   );
   tower.position.set(-6, 7.5, -16);
   airport.add(tower);
+
+  // tower top
   const towerTop = new THREE.Mesh(
     new THREE.CylinderGeometry(2.5, 1.5, 1.5, 8),
-    new THREE.MeshPhongMaterial({ color: 0x777777 })
+    matTowerTop
   );
   towerTop.position.set(0, 4.5, 0);
   tower.add(towerTop);
+  const towerTopRoof = new THREE.Mesh(
+    new THREE.ConeGeometry(2.6, 0.5, 8),
+    matTowerTopRoof
+  );
+  towerTopRoof.position.set(0, 1, 0);
+  towerTop.add(towerTopRoof);
+
   const towerAntenna = new THREE.Mesh(
     new THREE.CylinderGeometry(0.1, 0.1, 3, 8),
     new THREE.MeshPhongMaterial({ color: 0x222222 })
