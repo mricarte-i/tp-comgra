@@ -286,8 +286,33 @@ function EngineMesh(
     20,
     20
   );
+  let uvs = [];
+  for (let i = 0; i < geometry.attributes.uv.count; i++) {
+    let u = geometry.attributes.uv.getX(i);
+    let v = geometry.attributes.uv.getY(i);
+    // get vertex positions
+    let x = geometry.attributes.position.getX(i);
+    let y = geometry.attributes.position.getY(i);
+    let z = geometry.attributes.position.getZ(i);
+
+    // define UVs
+    u = x;
+    v = z / 2;
+
+    uvs.push(u, v);
+  }
+  geometry.setAttribute(
+    'uv',
+    new THREE.Float32BufferAttribute(uvs, 2)
+  );
+  let uvTexture = new THREE.TextureLoader().load(
+    '/airplane/engine_map.jpg'
+  );
+  uvTexture.wrapS = THREE.RepeatWrapping;
+  uvTexture.wrapT = THREE.RepeatWrapping;
   const material = new THREE.MeshPhongMaterial({
-    color,
+    //color,
+    map: uvTexture,
     //side: THREE.DoubleSide,
     flatShading: true,
   });
@@ -451,9 +476,16 @@ export function AirplaneGeometry() {
   topLight.position.set(0, 0.5, -1.25);
 
   function updateTopLight(time, intensity, color) {
-    topLight.intensity = intensity
-      ? intensity * (Math.sin(time * 10) * 0.5 + 0.5)
-      : topLight.intensity;
+    topLight.intensity =
+      intensity * (Math.sin(time * 10) * 0.5 + 0.5);
+
+    wingLightL.intensity =
+      intensity * 4 * (Math.sin(time * 10) * 0.5 + 0.5);
+    wingLightR.intensity =
+      intensity * 4 * (Math.sin(time * 10) * 0.5 + 0.5);
+    headLight.intensity =
+      intensity * 10 * (Math.sin(time * 10) * 0.5 + 0.5);
+
     topLight.color = color
       ? new THREE.Color(color)
       : topLight.color;

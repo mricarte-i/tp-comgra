@@ -800,7 +800,7 @@ function animate() {
   );
   updateTopLight(
     clock.elapsedTime,
-    20 * 0.0001 * controller.getStatus().speed,
+    controller.getStatus().speed,
     mainCamera === 4
       ? 0xff0000
       : mainCamera === 5
