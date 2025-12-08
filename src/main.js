@@ -50,7 +50,7 @@ const effectController = {
   azimuth: 25,
   exposure: 0.5, //renderer.toneMappingExposure,
 };
-const camerasFarClip = 10000;
+const camerasFarClip = 1000;
 const groundResolution = 128;
 const RENDER_SCALE = 0.5;
 
@@ -417,9 +417,11 @@ function setupHelpersAndUI() {
   helpEl = document.getElementById('help');
   cockpit = document.getElementById('cockpit');
 
-  // visualize the "destructor" path points from original file
   const path = new CircleCurve3(new THREE.Vector3(0, 0, 0), 275);
-
+  /**
+  ******
+  * visualize the "destructor" path points from original file
+  ******
   const points = path.getPoints(12);
 
   const sphereMat = new THREE.MeshPhongMaterial({
@@ -434,7 +436,7 @@ function setupHelpersAndUI() {
     sp.position.copy(points[i]);
     scene.add(sp);
   }
-
+  */
   // store path for boat movement updates
   setupHelpersAndUI._path = path;
   setupHelpersAndUI._pathTime = 0;

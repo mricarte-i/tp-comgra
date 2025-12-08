@@ -69,4 +69,7 @@ export function BaseScene(scene, effectController) {
 
   const axes = new THREE.AxesHelper(3);
   scene.add(axes);
+
+  //scene.fog = new THREE.FogExp2(0xcce0ff, 0.0003);
+  scene.fog = new THREE.Fog(0xcccccc, 100, 1000);
 }
