@@ -203,6 +203,8 @@ export async function createGround(
           let m = mesh.matrixWorld.clone();
           m = m.transpose().invert();
           mesh.material.uniforms.worldNormalMatrix.value = m;
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
         };
         mesh.castShadow = mesh.receiveShadow = true;
         console.log('Ground mesh created:', mesh);

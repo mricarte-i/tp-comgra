@@ -21,7 +21,7 @@ export async function createAirport(
   renderer,
   camerasFarClip
 ) {
-  const tarmacMaterial = new THREE.MeshPhongMaterial({});
+  const tarmacMaterial = new THREE.MeshStandardMaterial({});
   try {
     const tex = await loadTextureAsync('/airport/tarmac.jpg');
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -49,7 +49,7 @@ export async function createAirport(
   airport.position.set(130, -3.8, 64);
   scene.add(airport);
 
-  let runwayMaterial = new THREE.MeshPhongMaterial({
+  let runwayMaterial = new THREE.MeshStandardMaterial({
     shininess: 0.5,
     reflectivity: 0.2,
     normalScale: new THREE.Vector2(0.1, 0.1),
@@ -103,8 +103,8 @@ export async function createAirport(
   /////////////////
   // control tower
   /////////////////
-  const matTowerTop = new THREE.MeshPhongMaterial({});
-  const matTowerTopRoof = new THREE.MeshPhongMaterial({});
+  const matTowerTop = new THREE.MeshStandardMaterial({});
+  const matTowerTopRoof = new THREE.MeshStandardMaterial({});
   try {
     const windowTexture = await loadTextureAsync(
       '/airport/tower-top-window.jpg'
@@ -161,7 +161,7 @@ export async function createAirport(
   // tower antenna and light
   const towerAntenna = new THREE.Mesh(
     new THREE.CylinderGeometry(0.1, 0.1, 3, 8),
-    new THREE.MeshPhongMaterial({ color: 0x222222 })
+    new THREE.MeshStandardMaterial({ color: 0x222222 })
   );
   towerAntenna.position.set(0, 2.5, 0);
   towerTop.add(towerAntenna);
@@ -195,7 +195,7 @@ export async function createAirport(
   function createHangar() {
     const hangarBase = new THREE.Mesh(
       new THREE.CylinderGeometry(3, 3, 6, 16),
-      new THREE.MeshPhongMaterial({
+      new THREE.MeshStandardMaterial({
         color: 0x999999,
         side: THREE.DoubleSide,
       })

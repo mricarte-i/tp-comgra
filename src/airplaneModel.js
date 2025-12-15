@@ -66,7 +66,7 @@ function MainBodyMesh() {
   );
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;
-  const material = new THREE.MeshPhongMaterial({
+  const material = new THREE.MeshStandardMaterial({
     //color: 0x2194ce,
     map: uvTexture,
     side: THREE.FrontSide,
@@ -174,7 +174,7 @@ function MainWingMesh() {
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;
 
-  const material = new THREE.MeshPhongMaterial({
+  const material = new THREE.MeshStandardMaterial({
     //color: 0x8ac926,
     map: uvTexture,
     //flatShading: true,
@@ -222,7 +222,7 @@ function TailWingMesh() {
   );
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;
-  const material = new THREE.MeshPhongMaterial({
+  const material = new THREE.MeshStandardMaterial({
     //color: 0xff6f91,
     map: uvTexture,
     //flatShading: true,
@@ -275,7 +275,7 @@ function TallTailWingMesh() {
   );
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;
-  const material = new THREE.MeshPhongMaterial({
+  const material = new THREE.MeshStandardMaterial({
     map: uvTexture,
     //flatShading: true,
     //side: THREE.DoubleSide,
@@ -361,7 +361,7 @@ function EngineMesh(
   );
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;
-  const material = new THREE.MeshPhongMaterial({
+  const material = new THREE.MeshStandardMaterial({
     //color,
     map: uvTexture,
     //side: THREE.DoubleSide,
@@ -377,7 +377,7 @@ function FanBlades(color = 0xcdcdcd) {
 
   // A few shapes for the fan blades
   const bladeGeometry = new THREE.BoxGeometry(0.05, 0.02, 0.5);
-  const bladeMaterial = new THREE.MeshPhongMaterial({
+  const bladeMaterial = new THREE.MeshStandardMaterial({
     color,
     //side: THREE.DoubleSide,
     //flatShading: true,
@@ -521,7 +521,7 @@ export function AirplaneGeometry() {
   airplane.add(wingLightR);
   wingLightR.position.set(2.5, 0.1, 0.1);
 
-  const topLight = new THREE.PointLight(0xff0000, 5);
+  const topLight = new THREE.PointLight(0xff0000, 1);
   topLight.castShadow = true;
   airplane.add(topLight);
   topLight.position.set(0, 0.5, -1.25);
@@ -531,11 +531,11 @@ export function AirplaneGeometry() {
       intensity * (Math.sin(time * 10) * 0.5 + 0.5);
 
     wingLightL.intensity =
-      intensity * 4 * (Math.sin(time * 10) * 0.5 + 0.5);
+      intensity * 0.5 * (Math.sin(time * 10) * 0.5 + 0.5);
     wingLightR.intensity =
-      intensity * 4 * (Math.sin(time * 10) * 0.5 + 0.5);
+      intensity * 0.5 * (Math.sin(time * 10) * 0.5 + 0.5);
     headLight.intensity =
-      intensity * 10 * (Math.sin(time * 10) * 0.5 + 0.5);
+      intensity * 0.5 * (Math.sin(time * 10) * 0.5 + 0.5);
 
     topLight.color = color
       ? new THREE.Color(color)

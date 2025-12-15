@@ -52,7 +52,7 @@ export function BaseScene(
       0,
       Math.min(1, 1 - theta / Math.PI)
     );
-    return intensity * 3;
+    return intensity * 6;
   }
 
   const light = new THREE.DirectionalLight(
@@ -64,6 +64,27 @@ export function BaseScene(
   );
   light.castShadow = true;
 
+  light.castShadow = true;
+  light.shadow.needsUpdate = true;
+  light.shadow.camera.near = 0.01;
+  light.shadow.camera.far = 500;
+  light.shadow.camera.left = -50;
+  light.shadow.camera.right = 50;
+  light.shadow.camera.top = 50;
+  light.shadow.camera.bottom = -50;
+  light.shadow.mapSize.width = 526;
+  light.shadow.mapSize.height = 526;
+  /*
+  ** only for debugging
+  light.shadowCameraVisible = true; 
+  // these six values define the boundaries of the yellow box seen above
+  light.shadowCameraNear = 2;
+  light.shadowCameraFar = 5;
+  light.shadowCameraLeft = -0.5;
+  light.shadowCameraRight = 0.5;
+  light.shadowCameraTop = 0.5;
+  light.shadowCameraBottom = -0.5;
+  */
   light.position.copy(sun);
   scene.add(light);
 
@@ -81,7 +102,8 @@ export function BaseScene(
       alpha: 1.0,
       sunDirection: sun.clone(),
       sunColor: lightColor(),
-      waterColor: 0x001e0f,
+      waterColor: 0x00065f,
+      //0x001e0f,
       distortionScale: 3.7,
       fog: scene.fog !== undefined,
     }

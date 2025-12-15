@@ -101,6 +101,9 @@ async function init() {
 function setupRendererAndScene() {
   renderer = new THREE.WebGLRenderer();
   renderer.shadowMap.enabled = true;
+  renderer.shadowMapEnabled = true;
+  renderer.shadowMapSoft = true;
+
   scene = new THREE.Scene();
   container.appendChild(renderer.domElement);
   renderer.toneMappingExposure = effectController.exposure;
@@ -671,6 +674,8 @@ function spawnExplosion(position, startTime) {
     color: 0xffaa00,
     transparent: true,
     opacity: 1,
+    emissive: 0xff6600,
+    emissiveIntensity: 12,
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.copy(position);
