@@ -1,42 +1,48 @@
 export const vertexShader = `    
     precision highp float;
 
+    #include <common>
+    #include <shadowmap_pars_vertex>
+
     // Atributos de los vértices
-    attribute vec3 position; 	
-    attribute vec3 normal; 	
-    attribute vec2 uv;		 	
+    attribute vec3 position; 
+    attribute vec3 normal; 
+    attribute vec2 uv;     
 
     // Uniforms
-    uniform mat4 modelMatrix;		// Matriz de transformación del objeto
-    uniform mat4 worldNormalMatrix;	// Matriz de normales
-    uniform mat4 viewMatrix;		// Matriz de transformación de la cámara
-    uniform mat4 projectionMatrix;	// Matriz de proyección de la cámara
+    uniform mat4 modelMatrix;       // Matriz de transformación del objeto
+    uniform mat4 worldNormalMatrix; // Matriz de normales
+    uniform mat4 viewMatrix;        // Matriz de transformación de la cámara
+    uniform mat4 projectionMatrix;  // Matriz de proyección de la cámara
 
     // Varying
-    varying vec2 vUv;	    // Coordenadas de textura que se pasan al fragment shader
-    varying vec3 vNormal;	// Normal del vértice que se pasa al fragment shader
-    varying vec3 vWorldPos;	// Posición del vértice en el espacio  de mundo
+    varying vec2 vUv;       // Coordenadas de textura que se pasan al fragment shader
+    varying vec3 vNormal;   // Normal del vértice que se pasa al fragment shader
+    varying vec3 vWorldPos; // Posición del vértice en el espacio  de mundo
 
     void main() {
-        
         // Lee la posición del vértice desde los atributos
-
-        vec3 pos = position;	
+        vec3 pos = position;
 
         // Se calcula la posición final del vértice
         // Se aplica la transformación del objeto, la de la cámara y la de proyección
-
         gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(pos, 1.0);
 
         // Se pasan las coordenadas de textura al fragment shader
         vUv = uv;
         vNormal = normalize(vec3(worldNormalMatrix * vec4(normal, 0.0)));
         vWorldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
+
+        // Calcula coordenadas de sombra para las luces con shadowMap
+        #include <shadowmap_vertex>
     }
 `;
 
 export const fragmentShader = `
     precision mediump float;
+    #include <common>
+    #include <packing>
+    #include <shadowmap_pars_fragment>
     varying vec2 vUv;
     varying vec3 vNormal;
     varying vec3 vWorldPos;
@@ -69,7 +75,12 @@ export const fragmentShader = `
         
         float verticallity=1.0-max(0.0,vNormal.y);
         float flatness=1.0-verticallity;
-        float lightIntensity=0.5+0.5*max(0.0,dot(vNormal,sunDirection));
+    float lightIntensity=0.5+0.5*max(0.0,dot(vNormal,sunDirection));
+    // Shadow mask (0 = fully shadowed, 1 = lit)
+    float shadowMask = 1.0;
+    #ifdef USE_SHADOWMAP
+    shadowMask = getShadowMask();
+    #endif
         
 
         // Queremos que haya rocas en las zonas más verticales
@@ -90,7 +101,7 @@ export const fragmentShader = `
         // mezcla de pasto, tierra, rocas y nieve
         vec3 grassDirtRockSnow=mix(grassDirtRock,snow,snowFactor);
 
-        vec3 color=grassDirtRockSnow*lightIntensity;
+        vec3 color=grassDirtRockSnow*lightIntensity*shadowMask;
 
         gl_FragColor = vec4(color,1.0);	
 
@@ -113,6 +124,9 @@ export const fragmentShader = `
 // so you can control where rock and dirt appear by height.
 export const fragmentShaderRocky = `
     precision mediump float;
+    #include <common>
+    #include <packing>
+    #include <shadowmap_pars_fragment>
     varying vec2 vUv;
     varying vec3 vNormal;
     varying vec3 vWorldPos;
@@ -146,7 +160,11 @@ export const fragmentShaderRocky = `
         // geometry-based factors
         float verticallity = 1.0 - max(0.0, vNormal.y);
         float flatness = 1.0 - verticallity;
-        float lightIntensity = 0.5 + 0.5 * max(0.0, dot(vNormal, sunDirection));
+    float lightIntensity = 0.5 + 0.5 * max(0.0, dot(vNormal, sunDirection));
+    float shadowMask = 1.0;
+    #ifdef USE_SHADOWMAP
+    shadowMask = getShadowMask();
+    #endif
 
         // Height-based bands
         float rockHeight = smoothstep(rockThresholdLow, rockThresholdHigh, vWorldPos.y);
@@ -177,7 +195,7 @@ export const fragmentShaderRocky = `
         vec3 base = mix(baseWithSand, rock, rockFactor);
 
         // Slight enhancement of color by light
-        vec3 color = base * lightIntensity;
+        vec3 color = base * lightIntensity * shadowMask;
 
         gl_FragColor = vec4(color, 1.0);
     }
@@ -185,6 +203,9 @@ export const fragmentShaderRocky = `
 
 export const fragmentShaderBands = `
     precision mediump float;
+    #include <common>
+    #include <packing>
+    #include <shadowmap_pars_fragment>
     varying vec2 vUv;
     varying vec3 vNormal;
     varying vec3 vWorldPos;
@@ -218,7 +239,11 @@ export const fragmentShaderBands = `
 
         // Geometry-based factors
         float verticallity = 1.0 - max(0.0, vNormal.y);
-        float lightIntensity = 0.5 + 0.5 * max(0.0, dot(vNormal, sunDirection));
+    float lightIntensity = 0.5 + 0.5 * max(0.0, dot(vNormal, sunDirection));
+    float shadowMask = 1.0;
+    #ifdef USE_SHADOWMAP
+    shadowMask = getShadowMask();
+    #endif
 
         // Height-based bands
         float sandFactor = smoothstep(sandStart, sandEnd, vWorldPos.y);
@@ -240,7 +265,7 @@ export const fragmentShaderBands = `
         vec3 finalBase = mix(grassDirt, rock, rockFactor);
 
         // Apply lighting
-        vec3 color = finalBase * lightIntensity;
+        vec3 color = finalBase * lightIntensity * shadowMask;
 
         gl_FragColor = vec4(color, 1.0);
     }

@@ -160,8 +160,10 @@ export async function createGround(
 
         geometry.computeVertexNormals();
 
-        material = new THREE.RawShaderMaterial({
-          uniforms: {
+        const uniforms = THREE.UniformsUtils.merge([
+          THREE.UniformsLib['lights'],
+          THREE.UniformsLib['shadowmap'],
+          {
             sandSampler: { value: textures.sand.object },
             grassSampler: { value: textures.pasto.object },
             dirtSampler: { value: textures.tierra.object },
@@ -186,10 +188,16 @@ export async function createGround(
             rockEnd: { value: 25.0 },
             worldNormalMatrix: { value: new THREE.Matrix4() },
           },
+        ]);
+
+        material = new THREE.RawShaderMaterial({
+          uniforms,
           vertexShader: vertexShader,
           fragmentShader: fragmentShaderBands,
-          side: THREE.DoubleSide,
+          side: THREE.FrontSide,
+          lights: true,
         });
+        material.receiveShadow = true;
 
         const mesh = new THREE.Mesh(geometry, material);
         material.needsUpdate = true;
