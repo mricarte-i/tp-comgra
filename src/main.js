@@ -379,8 +379,8 @@ async function setupBoatAndBoatCameras() {
   cannon.add(camTurretBoat);
   camTurretBoat.position.set(-6, -15, 0);
 
-  const turretCamHelper = new THREE.AxesHelper(5);
-  camTurretBoat.add(turretCamHelper);
+  //const turretCamHelper = new THREE.AxesHelper(5);
+  //camTurretBoat.add(turretCamHelper);
   camTurretBoat.rotateOnAxis(
     new THREE.Vector3(0, 0, 1),
     Math.PI
@@ -395,6 +395,7 @@ async function setupBoatAndBoatCameras() {
   );
 
   turretEndHelper = new THREE.AxesHelper(5);
+  turretEndHelper.visible = false;
   cannon.add(turretEndHelper);
   turretEndHelper.position.set(0, 8, 0);
 }
@@ -804,7 +805,7 @@ function updateExplosions(now) {
 
 function updateAirportLights(now) {
   const intensity = 0.5 + 10 * Math.sin(now * 5);
-  antennaLight.intensity = intensity;
+  antennaLight.intensity = Math.max(0, intensity);
 }
 
 function updateWater(dt) {

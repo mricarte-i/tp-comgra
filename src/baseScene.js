@@ -124,7 +124,8 @@ export function BaseScene(
 
   light.castShadow = true;
   light.receiveShadow = true;
-  light.shadow.bias = -0.0001;
+  light.shadow.bias = -0.00001;
+  light.shadow.normalBias = 0.01;
   light.shadow.radius = 0.5;
 
   let d = 60;
@@ -132,7 +133,7 @@ export function BaseScene(
   light.shadow.camera.right = d;
   light.shadow.camera.top = d;
   light.shadow.camera.bottom = -d;
-  light.shadow.camera.near = 0.01;
+  light.shadow.camera.near = 0.00001;
   light.shadow.camera.far = 10000;
 
   light.shadow.mapSize.width = 1024;

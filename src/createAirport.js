@@ -87,6 +87,8 @@ export async function createAirport(
     new THREE.BoxGeometry(11, 9, 61),
     tarmacMaterial
   );
+  runwayWrapper.receiveShadow = true;
+  runwayWrapper.castShadow = true;
   runwayWrapper.position.set(8.5, 0.75, 0.5);
   airport.add(runwayWrapper);
 

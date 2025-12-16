@@ -506,17 +506,17 @@ export function AirplaneGeometry() {
     }
   );
 
-  const headLight = new THREE.PointLight(0xffdd55, 50);
+  const headLight = new THREE.PointLight(0xffdd55, 0.5);
   headLight.castShadow = true;
   airplane.add(headLight);
   headLight.position.set(0, -0.5, 2);
 
-  const wingLightL = new THREE.PointLight(0x00ff00, 20);
+  const wingLightL = new THREE.PointLight(0x00ff00, 2);
   wingLightL.castShadow = true;
   airplane.add(wingLightL);
   wingLightL.position.set(-2.5, 0.1, 0.1);
 
-  const wingLightR = new THREE.PointLight(0xff0000, 20);
+  const wingLightR = new THREE.PointLight(0xff0000, 2);
   wingLightR.castShadow = true;
   airplane.add(wingLightR);
   wingLightR.position.set(2.5, 0.1, 0.1);
