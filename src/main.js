@@ -42,12 +42,12 @@ let controller;
 const clock = new THREE.Clock();
 const camOrbitBoatOffset = new THREE.Vector3(0, 10, 30);
 const effectController = {
+  elevation: 19.8,
+  azimuth: -101,
   turbidity: 1,
   rayleigh: 0.2,
   mieCoefficient: 0.005,
-  mieDirectionalG: 0.7,
-  elevation: 20,
-  azimuth: 25,
+  mieDirectionalG: 0.662,
   exposure: 0.5, //renderer.toneMappingExposure,
 };
 const camerasFarClip = 1000;
@@ -94,15 +94,14 @@ async function init() {
       orbitControls[i].enabled = i === mainCamera;
     }
   }
-  createMenu();
+  //createMenu();
   animate();
 }
 
 function setupRendererAndScene() {
   renderer = new THREE.WebGLRenderer();
   renderer.shadowMap.enabled = true;
-  renderer.shadowMapEnabled = true;
-  renderer.shadowMapSoft = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   scene = new THREE.Scene();
   container.appendChild(renderer.domElement);
@@ -244,6 +243,14 @@ async function setupEnvironment() {
   cannonBall.position.set(0, -2, 0);
   cannonBall.castShadow = cannonBall.receiveShadow = true;
   scene.add(cannonBall);
+
+  const cube = new THREE.Mesh(
+    new THREE.BoxGeometry(20, 1, 20),
+    new THREE.MeshStandardMaterial({ color: 0xff0000 })
+  );
+  cube.position.set(0, -5, 0);
+  cube.castShadow = cube.receiveShadow = true;
+  scene.add(cube);
 
   // expose for updateWindWakerWaves closure
   setupEnvironment._waves = wavesGroup;

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 //import { Sky } from 'three/addons/objects/Sky.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { Water } from 'three/examples/jsm/objects/Water.js';
+import * as dat from 'dat.gui';
 
 export function BaseScene(
   scene,
@@ -34,6 +35,64 @@ export function BaseScene(
 
   uniforms['sunPosition'].value.copy(sun);
 
+  /*
+  ** DEBUG:
+  ** GUI for sun and sky parameters
+  const gui = new dat.GUI({ width: 400 });
+  const params = {
+    ...effectController,
+  };
+  gui
+    .add(params, 'elevation', 0, 90)
+    .name('elevation')
+    .onChange(updateSun);
+  gui
+    .add(params, 'azimuth', -180, 180)
+    .name('azimuth')
+    .onChange(updateSun);
+
+  gui
+    .add(uniforms.turbidity, 'value', 0, 10)
+    .name('turbidity')
+    .onChange(updateSun);
+  gui
+    .add(uniforms.rayleigh, 'value', 0, 4)
+    .name('rayleigh')
+    .onChange(updateSun);
+  gui
+    .add(uniforms.mieCoefficient, 'value', 0, 0.1)
+    .name('mieCoefficient')
+    .onChange(updateSun);
+  gui
+    .add(uniforms.mieDirectionalG, 'value', 0, 1)
+    .name('mieDirectionalG')
+    .onChange(updateSun);
+
+  function updateSun() {
+    const phi = THREE.MathUtils.degToRad(90 - params.elevation);
+    const theta = THREE.MathUtils.degToRad(params.azimuth);
+
+    sun.setFromSphericalCoords(1, phi, theta);
+
+    uniforms['sunPosition'].value.copy(sun);
+
+    light.position.copy(sun);
+
+    water.material.uniforms['sunDirection'].value.copy(sun);
+
+    console.log('new effectController:', {
+      elevation: params.elevation,
+      azimuth: params.azimuth,
+      turbidity: uniforms['turbidity'].value,
+      rayleigh: uniforms['rayleigh'].value,
+      mieCoefficient: uniforms['mieCoefficient'].value,
+      mieDirectionalG: uniforms['mieDirectionalG'].value,
+    });
+
+    //scene.environment = pmremGenerator.fromScene(sky).texture;
+  }
+    */
+
   scene.add(sky);
 
   function lightColor() {
@@ -52,7 +111,7 @@ export function BaseScene(
       0,
       Math.min(1, 1 - theta / Math.PI)
     );
-    return intensity * 6;
+    return intensity * 0.8 + 0.2;
   }
 
   const light = new THREE.DirectionalLight(
@@ -62,18 +121,32 @@ export function BaseScene(
     //effectController.rayleigh * 0.5
     lightIntensity()
   );
-  light.castShadow = true;
 
   light.castShadow = true;
-  light.shadow.needsUpdate = true;
+  light.receiveShadow = true;
+  light.shadow.bias = -0.0001;
+  light.shadow.radius = 0.5;
+
+  let d = 60;
+  light.shadow.camera.left = -d;
+  light.shadow.camera.right = d;
+  light.shadow.camera.top = d;
+  light.shadow.camera.bottom = -d;
   light.shadow.camera.near = 0.01;
-  light.shadow.camera.far = 500;
-  light.shadow.camera.left = -50;
-  light.shadow.camera.right = 50;
-  light.shadow.camera.top = 50;
-  light.shadow.camera.bottom = -50;
-  light.shadow.mapSize.width = 526;
-  light.shadow.mapSize.height = 526;
+  light.shadow.camera.far = 10000;
+
+  light.shadow.mapSize.width = 1024;
+  light.shadow.mapSize.height = 1024;
+  light.position.copy(sun);
+
+  /*
+  const helper = new THREE.DirectionalLightHelper(
+    light.shadow.camera,
+    5,
+    0xff0000
+  );
+  scene.add(helper);
+  */
   /*
   ** only for debugging
   light.shadowCameraVisible = true; 
@@ -85,7 +158,7 @@ export function BaseScene(
   light.shadowCameraTop = 0.5;
   light.shadowCameraBottom = -0.5;
   */
-  light.position.copy(sun);
+  console.log('Sun light position:', light.position);
   scene.add(light);
 
   const water = new Water(
