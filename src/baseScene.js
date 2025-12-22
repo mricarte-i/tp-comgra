@@ -111,7 +111,7 @@ export function BaseScene(
       0,
       Math.min(1, 1 - theta / Math.PI)
     );
-    return intensity * 0.8 + 0.2;
+    return intensity * 6 + 0.2;
   }
 
   const light = new THREE.DirectionalLight(
@@ -188,7 +188,7 @@ export function BaseScene(
   scene.add(water);
 
   // lets boost the ambient light a bit
-  const ambientLight = new THREE.AmbientLight(0x666666, 1);
+  const ambientLight = new THREE.AmbientLight(0x666666, 2);
   scene.add(ambientLight);
 
   const grid = new THREE.GridHelper(10, 10);

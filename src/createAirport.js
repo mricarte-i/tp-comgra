@@ -22,7 +22,7 @@ export async function createAirport(
   renderer,
   camerasFarClip
 ) {
-  const tarmacMaterial = new THREE.MeshStandardMaterial({});
+  const tarmacMaterial = new THREE.MeshPhongMaterial({});
   try {
     const tex = await loadTextureAsync('/airport/tarmac.jpg');
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
@@ -50,7 +50,7 @@ export async function createAirport(
   airport.position.set(130, -3.8, 64);
   scene.add(airport);
 
-  let runwayMaterial = new THREE.MeshStandardMaterial({
+  let runwayMaterial = new THREE.MeshPhongMaterial({
     shininess: 0.5,
     reflectivity: 0.2,
     normalScale: new THREE.Vector2(0.1, 0.1),
@@ -106,8 +106,8 @@ export async function createAirport(
   /////////////////
   // control tower
   /////////////////
-  const matTowerTop = new THREE.MeshStandardMaterial({});
-  const matTowerTopRoof = new THREE.MeshStandardMaterial({});
+  const matTowerTop = new THREE.MeshPhongMaterial({});
+  const matTowerTopRoof = new THREE.MeshPhongMaterial({});
   try {
     const windowTexture = await loadTextureAsync(
       '/airport/tower-top-window.jpg'
@@ -155,19 +155,25 @@ export async function createAirport(
   );
   towerTop.position.set(0, 4.5, 0);
   tower.add(towerTop);
+  towerTop.castShadow = true;
+  towerTop.receiveShadow = true;
   const towerTopRoof = new THREE.Mesh(
     new THREE.ConeGeometry(2.6, 0.5, 8),
     matTowerTopRoof
   );
   towerTopRoof.position.set(0, 1, 0);
   towerTop.add(towerTopRoof);
+  towerTopRoof.castShadow = true;
+  towerTopRoof.receiveShadow = true;
   // tower antenna and light
   const towerAntenna = new THREE.Mesh(
     new THREE.CylinderGeometry(0.1, 0.1, 3, 8),
-    new THREE.MeshStandardMaterial({ color: 0x222222 })
+    new THREE.MeshPhongMaterial({ color: 0x222222 })
   );
   towerAntenna.position.set(0, 2.5, 0);
   towerTop.add(towerAntenna);
+  towerAntenna.castShadow = true;
+  towerAntenna.receiveShadow = true;
   const antennaLight = new THREE.PointLight(0xffaa00, 1, 50);
   antennaLight.castShadow = true;
   antennaLight.position.set(0, 1.5, 0);
@@ -328,13 +334,13 @@ function createHangar() {
   // set different textures for walls and caps using groups
   const materials = [];
   materials.push(
-    new THREE.MeshStandardMaterial({
+    new THREE.MeshPhongMaterial({
       map: wallTexture,
       normalMap: wallNormal,
     })
   ); // walls
   materials.push(
-    new THREE.MeshStandardMaterial({
+    new THREE.MeshPhongMaterial({
       map: capTexture,
       normalMap: capNormal,
     })

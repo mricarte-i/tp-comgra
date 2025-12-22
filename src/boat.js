@@ -33,6 +33,10 @@ export function BoatModel() {
       gltf => {
         let boat, turret, cannon;
         gltf.scene.traverse(node => {
+          if (node.isMesh) {
+            node.castShadow = true;
+            node.receiveShadow = true;
+          }
           if (node.name === 'destructor') {
             boat = node;
             boat.scale.set(1, 1, 1);
@@ -69,7 +73,7 @@ export function BoatModel() {
             );
             */
 
-            boat.material = new THREE.MeshStandardMaterial({
+            boat.material = new THREE.MeshPhongMaterial({
               map: destructorTexture,
             });
             pivot.add(boat);
@@ -80,7 +84,7 @@ export function BoatModel() {
             turret = node;
             turret.castShadow = true;
             turret.receiveShadow = true;
-            turret.material = new THREE.MeshStandardMaterial({
+            turret.material = new THREE.MeshPhongMaterial({
               map: torretaTexture,
             });
           }
@@ -90,6 +94,7 @@ export function BoatModel() {
           if (node.name === 'canon') {
             cannon = node;
             cannon.castShadow = true;
+            cannon.receiveShadow = true;
           }
         });
 

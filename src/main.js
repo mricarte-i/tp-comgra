@@ -52,7 +52,7 @@ const effectController = {
 };
 const camerasFarClip = 1000;
 const groundResolution = 128;
-const RENDER_SCALE = 0.5;
+const RENDER_SCALE = 1;
 
 let water;
 
@@ -186,7 +186,7 @@ async function setupEnvironment() {
     0.01,
     sunDir
   );
-  ground.position.set(0, -2, 0);
+  ground.position.set(-5, -2, 0);
   scene.add(ground);
 
   // simple stylized waves
@@ -246,7 +246,7 @@ async function setupEnvironment() {
 
   const cube = new THREE.Mesh(
     new THREE.BoxGeometry(20, 1, 20),
-    new THREE.MeshStandardMaterial({ color: 0xff0000 })
+    new THREE.MeshPhongMaterial({ color: 0xff0000 })
   );
   cube.position.set(0, -5, 0);
   cube.castShadow = cube.receiveShadow = true;
