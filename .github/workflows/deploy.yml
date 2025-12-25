@@ -1,0 +1,44 @@
+name: Build and Deploy (pages branch)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Deploy to pages branch
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: pages           # The branch the action should deploy to
+          folder: dist            # The folder the action should deploy
+          clean: true             # Remove files not in the latest build
+          single-commit: true     # Keep history small on the pages branch
