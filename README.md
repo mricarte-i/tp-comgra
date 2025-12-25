@@ -38,4 +38,9 @@ The project is built using Three.js and Vite, and it showcases various computer 
         - Install deps, run `vite build`, and push `dist/` to the `pages` branch.
     - You can also trigger it manually from the Actions tab (workflow: “Build and Deploy (pages branch)”).
 - Vite base path:
-    - Current config uses `base: './'` in `vite.config.mjs`, which works for subpath hosting on Pages. If you prefer absolute paths, set `base: '/<your-repo-name>/'`.
+    - The workflow builds with `VITE_BASE=/tp-comgra/` so all asset URLs include the repo subpath.
+    - For local builds targeting Pages, run:
+        ```bash
+        VITE_BASE=/tp-comgra/ pnpm run build
+        ```
+    - Dev server remains unaffected (`pnpm dev` uses `base: './'`).

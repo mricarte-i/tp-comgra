@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite';
 
+// Allow overriding base via env (used in CI for GitHub Pages)
+const base = process.env.VITE_BASE || './';
+
 export default defineConfig({
 	server: {
 		port: 10001, // Personaliza el puerto aquí
@@ -7,5 +10,5 @@ export default defineConfig({
 	build: {
 		outDir: 'dist', // Personaliza la carpeta de salida del build aquí
 	},
-	base: './', // Personaliza el directorio base de los links del HTML aquí
+	base,
 });

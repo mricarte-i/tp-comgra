@@ -168,7 +168,7 @@ export function BaseScene(
       textureWidth: subdivisions,
       textureHeight: subdivisions,
       waterNormals: new THREE.TextureLoader().load(
-        '/waternormals.jpg',
+        `${import.meta.env.BASE_URL}waternormals.jpg`,
         function (texture) {
           texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         }

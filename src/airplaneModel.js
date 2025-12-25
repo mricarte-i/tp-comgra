@@ -62,7 +62,7 @@ function MainBodyMesh() {
     new THREE.Float32BufferAttribute(uvs, 2)
   );
   let uvTexture = new THREE.TextureLoader().load(
-    '/airplane/main_body.jpg'
+    `${import.meta.env.BASE_URL}airplane/main_body.jpg`
   );
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;
@@ -169,7 +169,7 @@ function MainWingMesh() {
     new THREE.Float32BufferAttribute(uvs, 2)
   );
   let uvTexture = new THREE.TextureLoader().load(
-    '/airplane/wing_map.jpg'
+    `${import.meta.env.BASE_URL}airplane/wing_map.jpg`
   );
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;
@@ -218,7 +218,7 @@ function TailWingMesh() {
     new THREE.Float32BufferAttribute(uvs, 2)
   );
   let uvTexture = new THREE.TextureLoader().load(
-    '/airplane/wing_map.jpg'
+    `${import.meta.env.BASE_URL}airplane/wing_map.jpg`
   );
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;
@@ -271,7 +271,7 @@ function TallTailWingMesh() {
     new THREE.Float32BufferAttribute(uvs, 2)
   );
   let uvTexture = new THREE.TextureLoader().load(
-    '/airplane/wing_map.jpg'
+    `${import.meta.env.BASE_URL}airplane/wing_map.jpg`
   );
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;
@@ -357,7 +357,7 @@ function EngineMesh(
     new THREE.Float32BufferAttribute(uvs, 2)
   );
   let uvTexture = new THREE.TextureLoader().load(
-    '/airplane/engine_map.jpg'
+    `${import.meta.env.BASE_URL}airplane/engine_map.jpg`
   );
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;

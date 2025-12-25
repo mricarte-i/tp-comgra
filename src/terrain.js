@@ -52,7 +52,7 @@ export function loadTexturesAsync() {
       const loader = new THREE.TextureLoader(loadingManager);
       const texture = textures[key];
       loader.load(
-        '/maps/' + texture.url,
+        `${import.meta.env.BASE_URL}maps/` + texture.url,
         tex => {
           tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
           textures[key].object = tex;
@@ -69,7 +69,7 @@ export function loadTexturesAsync() {
 }
 
 export async function createGround(
-  path = '/public/heightmap.png',
+  path = undefined,
   width = 500,
   height = 500,
   widthSegments = 256,
@@ -126,8 +126,9 @@ export async function createGround(
   // Load heightmap using TextureLoader
   const loader = new THREE.TextureLoader();
   return new Promise((resolve, reject) => {
+    const heightmapPath = path ?? `${import.meta.env.BASE_URL}heightmap.png`;
     loader.load(
-      path,
+      heightmapPath,
       texture => {
         // Create a canvas to read pixel data
         const img = texture.image;

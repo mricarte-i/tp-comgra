@@ -16,20 +16,20 @@ export function BoatModel() {
 
   const textureLoader = new TextureLoader();
   const destructorTexture = textureLoader.load(
-    '/public/destructor_map_color.jpg'
+    `${import.meta.env.BASE_URL}destructor_map_color.jpg`
   );
   destructorTexture.wrapS = RepeatWrapping;
   destructorTexture.wrapT = RepeatWrapping;
 
   const torretaTexture = textureLoader.load(
-    '/public/torreta_map.jpg'
+    `${import.meta.env.BASE_URL}torreta_map.jpg`
   );
   torretaTexture.wrapS = RepeatWrapping;
   torretaTexture.wrapT = RepeatWrapping;
 
   return new Promise((resolve, reject) => {
     loader.load(
-      '/public/destructor.glb',
+      `${import.meta.env.BASE_URL}destructor.glb`,
       gltf => {
         let boat, turret, cannon;
         gltf.scene.traverse(node => {

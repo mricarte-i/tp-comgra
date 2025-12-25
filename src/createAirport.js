@@ -24,12 +24,12 @@ export async function createAirport(
 ) {
   const tarmacMaterial = new THREE.MeshPhongMaterial({});
   try {
-    const tex = await loadTextureAsync('/airport/tarmac.jpg');
+    const tex = await loadTextureAsync(`${import.meta.env.BASE_URL}airport/tarmac.jpg`);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(8, 8);
 
     const normalMap = await loadTextureAsync(
-      '/airport/tarmac-normal.jpg'
+      `${import.meta.env.BASE_URL}airport/tarmac-normal.jpg`
     );
     normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
     normalMap.repeat.set(8, 8);
@@ -56,12 +56,12 @@ export async function createAirport(
     normalScale: new THREE.Vector2(0.1, 0.1),
   });
   try {
-    const tex = await loadTextureAsync('/airport/runway.jpg');
+    const tex = await loadTextureAsync(`${import.meta.env.BASE_URL}airport/runway.jpg`);
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
     tex.repeat.set(1, 4);
 
     const normalMap = await loadTextureAsync(
-      '/airport/runway-normal.jpg'
+      `${import.meta.env.BASE_URL}airport/runway-normal.jpg`
     );
     normalMap.wrapS = normalMap.wrapT = THREE.RepeatWrapping;
     normalMap.repeat.set(1, 4);
@@ -110,7 +110,7 @@ export async function createAirport(
   const matTowerTopRoof = new THREE.MeshPhongMaterial({});
   try {
     const windowTexture = await loadTextureAsync(
-      '/airport/tower-top-window.jpg'
+      `${import.meta.env.BASE_URL}airport/tower-top-window.jpg`
     );
     windowTexture.wrapS = THREE.RepeatWrapping;
     windowTexture.wrapT = THREE.ClampToEdgeWrapping;
@@ -120,10 +120,10 @@ export async function createAirport(
     matTowerTop.needsUpdate = true;
 
     const roofTexture = await loadTextureAsync(
-      '/airport/tower-top-wall.jpg'
+      `${import.meta.env.BASE_URL}airport/tower-top-wall.jpg`
     );
     const roofTextureNormal = await loadTextureAsync(
-      '/airport/tower-top-wall-normal.jpg'
+      `${import.meta.env.BASE_URL}airport/tower-top-wall-normal.jpg`
     );
     roofTextureNormal.wrapS = THREE.RepeatWrapping;
     roofTextureNormal.wrapT = THREE.ClampToEdgeWrapping;
@@ -309,9 +309,9 @@ function createHangar() {
 
   // load /maps/cap_map.jpg and wall_map.jpg as textures
   let textureLoader = new THREE.TextureLoader();
-  let wallTexture = textureLoader.load('/airport/wall_map.jpg');
-  let capTexture = textureLoader.load('/airport/cap_map.jpg');
-  let uvTexture = textureLoader.load('/uv.jpg');
+  let wallTexture = textureLoader.load(`${import.meta.env.BASE_URL}airport/wall_map.jpg`);
+  let capTexture = textureLoader.load(`${import.meta.env.BASE_URL}airport/cap_map.jpg`);
+  let uvTexture = textureLoader.load(`${import.meta.env.BASE_URL}uv.jpg`);
   // set repeat for all textures
   uvTexture.wrapS = THREE.RepeatWrapping;
   uvTexture.wrapT = THREE.RepeatWrapping;
@@ -320,13 +320,13 @@ function createHangar() {
   wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
 
   let wallNormal = textureLoader.load(
-    '/airport/wall_map-normal.jpg'
+    `${import.meta.env.BASE_URL}airport/wall_map-normal.jpg`
   );
   wallNormal.wrapS = THREE.RepeatWrapping;
   wallNormal.wrapT = THREE.RepeatWrapping;
 
   let capNormal = textureLoader.load(
-    '/airport/cap_map-normal.jpg'
+    `${import.meta.env.BASE_URL}airport/cap_map-normal.jpg`
   );
   capNormal.wrapS = THREE.RepeatWrapping;
   capNormal.wrapT = THREE.RepeatWrapping;
