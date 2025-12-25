@@ -159,7 +159,7 @@ export function BaseScene(
   light.shadowCameraTop = 0.5;
   light.shadowCameraBottom = -0.5;
   */
-  console.log('Sun light position:', light.position);
+ 
   scene.add(light);
 
   const water = new Water(

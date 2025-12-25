@@ -35,6 +35,7 @@ export const vertexShader = `
     }
 `;
 
+// Original fragment shader with snow band, from: https://github.com/fedemarino31/cg7258
 export const fragmentShader = `
     precision mediump float;
     varying vec2 vUv;
@@ -183,6 +184,9 @@ export const fragmentShaderRocky = `
     }
 `;
 
+// Final variant of the fragment shader that implements multiple texture bands
+// (sand, grass, dirt, rock) based on height, slope, plus lighting based on the initial 
+// sun direction.
 export const fragmentShaderBands = `
     precision mediump float;
     varying vec2 vUv;

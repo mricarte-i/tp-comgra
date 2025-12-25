@@ -94,7 +94,10 @@ async function init() {
       orbitControls[i].enabled = i === mainCamera;
     }
   }
+  
+  // dat gui menus
   //createMenu();
+  
   animate();
 }
 
@@ -775,7 +778,6 @@ function updateExplosions(now) {
       exp.geo.dispose();
       exp.mat.dispose();
       explosions.splice(i, 1);
-      console.log('Explosion ended');
     } else {
       // update size and opacity
       const t = elapsed / explosionDuration;

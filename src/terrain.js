@@ -3,8 +3,6 @@ import * as dat from 'dat.gui';
 
 import {
   vertexShader,
-  fragmentShader,
-  fragmentShaderRocky,
   fragmentShaderBands,
 } from './helpers/shadersTexturadoProcedural.js';
 
@@ -194,6 +192,23 @@ export async function createGround(
 
         const mesh = new THREE.Mesh(geometry, material);
         material.needsUpdate = true;
+        /**
+         * ## On why this doesn't actually work:
+         * 
+         * So, you might've been told that in order to get shadows on your meshes
+         * you need to set `castShadow` and `receiveShadow` to true on both
+         * the light and the mesh. While this is true for most cases, it doesn't
+         * work when using ShaderMaterial, because Three.js isn't making the shaders, you are.
+         * 
+         * You CAN make it work, by manually taking in the shadowMap and other light info
+         * and implementing the shadow mapping algorithm in your shader.
+         * 
+         * I didn't figure that out until too late, so that's why this is here.
+         * The terrain will cast shadows, sure, but it won't receive them.
+         * 
+         * If you want to make it work, knock yourself out. Jump into the vertex and fragment
+         * shaders and see if you can make it work.
+         */
         material.onBeforeRender = (
           renderer,
           scene,
@@ -208,7 +223,7 @@ export async function createGround(
           mesh.receiveShadow = true;
         };
         mesh.castShadow = mesh.receiveShadow = true;
-        console.log('Ground mesh created:', mesh);
+        
         resolve(mesh);
       },
       undefined,
