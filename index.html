@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TP COMGRA</title>
+    <style>
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: #0b0b10;
+        overflow: hidden;
+      }
+      canvas {
+        display: block;
+      }
+      #hud {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        font: 14px/1.3 system-ui, sans-serif;
+        color: #e7e7e7;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 8px 10px;
+        border-radius: 10px;
+        backdrop-filter: blur(6px);
+        white-space: nowrap;
+        user-select: none;
+        z-index: 10;
+      }
+      #help {
+        position: fixed;
+        bottom: 10px;
+        left: 10px;
+        font: 12px/1.3 system-ui, sans-serif;
+        color: #cfd8dc;
+        opacity: 0.85;
+        background: rgba(0, 0, 0, 0.25);
+        padding: 6px 8px;
+        border-radius: 8px;
+        z-index: 10;
+      }
+      #repo {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        font: 12px/1.3 system-ui, sans-serif;
+        color: #676767;
+        opacity: 0.85;
+        background: rgba(0, 0, 0, 0.25);
+        padding: 8px 8px;
+        border-radius: 64px;
+        z-index: 10;
+        button {
+          padding: 6px 6px;
+          border-radius: 24px;
+        }
+        .icon {
+          display: block;
+          width: 24px;
+          height: 24px;
+          background-size: contain;
+          fill: #676767;
+        }
+      }
+      #cockpit {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 5;
+        transform: scale(2);
+        object-position: 35% 206px;
+      }
+      #container3D {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+      }
+      .dg.ac {
+        z-index: 15 !important;
+      }
+    </style>
+    <script type="module" crossorigin src="/tp-comgra/assets/index-CLJAcGK0.js"></script>
+  </head>
+  <body>
+    <div id="hud">Vel: 0 u/s<br />Throttle: 0%</div>
+    <div id="help">
+      ▲/▼: Pitch • ◀/▶: Roll • PageUp/PageDown: Throttle •
+      (mantené presionadas las flechas)<br />
+      Consejo: subí throttle con PageUp y dale algo de roll para
+      virar. <br />
+      Presioná R para resetear la posición. <br />
+      1,2,3,4,5,6,7,8 para cambiar cámara. <br />
+    </div>
+    <div id="repo">
+      <button
+        title="Ver código fuente en GitHub">
+        <a
+          href="https://github.com/mricarte-i/tp-comgra"
+          target="_blank"
+        >
+        <span class="icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+        </span></a>
+      </button>
+    </div>
+    <img
+      id="cockpit"
+      src="./cockpit.png"
+      style="display: none"
+    />
+    <div id="container3D"></div>
+  </body>
+</html>
