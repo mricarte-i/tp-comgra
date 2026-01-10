@@ -59,12 +59,59 @@ let water;
 
 async function init() {
   container = document.getElementById('container3D');
+  const overlay = document.getElementById('overlay');
+  const progressBar = document.getElementById('loadProgress');
+  const labelProgress = document.getElementById('labelProgress');
 
   setupRendererAndScene();
   water = BaseScene(scene, effectController, groundResolution); // axis helper + default lights
-  await setupEnvironment();
-  await setupAirplane();
-  await setupBoatAndBoatCameras();
+  // all the setup functions that load assets
+  const promises = [
+    setupEnvironment(),
+    setupAirplane(),
+    setupBoatAndBoatCameras(),
+    finalSetup(),
+  ];
+  const overallCount = promises.length;
+
+  let completed = 0;
+  Promise.all(
+    promises.map(p =>
+      p.then((value) => {
+        console.log('One asset loaded', value);
+        completed++;
+        const percent = Math.floor(
+          (completed / overallCount) * 100
+        );
+        progressBar.value = percent;
+        labelProgress.innerHTML = `Cargando: ${percent}%`;
+      })
+    )
+  ).then(() => {
+    // all done
+
+    // Define keyframes (an array of objects)
+    const keyframes = [
+      { opacity: 1, transform: 'translateY(0px)' }, // Start state (offset 0)
+      { opacity: 0, transform: 'translateY(1000px)', display: 'none' }  // End state (offset 1)
+    ];
+
+    // Define animation options (timing)
+    const options = {
+      duration: 500, // milliseconds
+      easing: 'ease-in-out',
+      fill: 'forwards' // Retain the final state after animation ends
+    };
+
+    // Apply the animation to the overlay
+    overlay.animate(keyframes, options);
+
+    // Start the render loop
+    animate();
+  });
+}
+
+async function finalSetup() {
   setupHelpersAndUI();
   setupEvents();
   // final camera array
@@ -98,8 +145,9 @@ async function init() {
 
   // dat gui menus
   //createMenu();
-
-  animate();
+  return new Promise((resolve) => {
+    resolve();
+  });
 }
 
 function setupRendererAndScene() {
@@ -240,6 +288,10 @@ async function setupEnvironment() {
     0,
     0
   );
+
+  return new Promise((resolve) => {
+    resolve(0);
+  });
 }
 
 let _spawn;
@@ -301,6 +353,9 @@ function setupAirplane() {
   });
 
   _spawn = airplaneSpawn;
+  return new Promise((resolve) => {
+    resolve(1);
+  });
 }
 
 let turretEndHelper;
@@ -377,6 +432,10 @@ async function setupBoatAndBoatCameras() {
   turretEndHelper.visible = false;
   cannon.add(turretEndHelper);
   turretEndHelper.position.set(0, 8, 0);
+
+  return new Promise((resolve) => {
+    resolve(2);
+  });
 }
 
 let axisHelper,
@@ -554,7 +613,7 @@ function updateHelp() {
   }
 
   if (mainCamera === 1 || mainCamera === 2) {
-    helpEl.innerText = `▲/▼: Pitch • ◀/▶: Roll • PageUp/PageDown: Throttle • (mantené presionadas
+    helpEl.innerHTML = `▲/▼: Pitch • ◀/▶: Roll • PageUp/PageDown: Throttle • (mantené presionadas
         las flechas)<br />
         Consejo: subí throttle con PageUp y dale algo de roll para virar. <br />
         Presioná R para resetear. <br />
@@ -564,12 +623,12 @@ function updateHelp() {
     mainCamera === 5 ||
     mainCamera === 6
   ) {
-    helpEl.innerText = `Mouse: orbitar cámara • Rueda: zoom • Clic izquierdo: orbitar • Clic derecho: moverse  <br />
+    helpEl.innerHTML = `Mouse: orbitar cámara • Rueda: zoom • Clic izquierdo: orbitar • Clic derecho: moverse  <br />
         I/K: Pitch • J/L: Yaw • Espacio: disparar torreta • (mantené presionadas las flechas)<br />
         Presioná R para resetear. <br />
         1,2,3,4,5,6,7,8 para cambiar cámara. <br />`;
   } else {
-    helpEl.innerText = `Mouse: mover cámara • Rueda: zoom • Clic izquierdo: orbitar • Clic derecho: moverse  <br />
+    helpEl.innerHTML = `Mouse: mover cámara • Rueda: zoom • Clic izquierdo: orbitar • Clic derecho: moverse  <br />
         Presioná R para resetear. <br />
         1,2,3,4,5,6,7,8 para cambiar cámara. <br />`;
   }
@@ -581,7 +640,7 @@ function updateHUD() {
   }
 
   const s = controller.getStatus();
-  hudEl.innerText =
+  hudEl.innerHTML =
     `Vel: ${s.speed.toFixed(1)} u/s<br>` +
     `Throttle: ${(controller.getEnginePower() * 100) | 0}%<br>` +
     `Pitch/Bank: ${s.pitchDeg.toFixed(0)}° / ${s.bankDeg.toFixed(
@@ -595,12 +654,12 @@ function updateHUD() {
       )} z:${axisHelper.position.z.toFixed(1)}`
       : '---'
     }<br>`;
-  
+
   if (
     lastSavedRaycastPoint &&
     (controls['ShiftLeft'] || controls['ShiftRight'])
   ) {
-    hudEl.innerText += `Distance: ${lastSavedRaycastPoint
+    hudEl.innerHTML += `Distance: ${lastSavedRaycastPoint
       .distanceTo(axisHelper.position)
       .toFixed(1)} u<br>`;
   }

@@ -84,9 +84,28 @@
       .dg.ac {
         z-index: 15 !important;
       }
+      #overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #0b0b10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+        color: white;
+        flex-direction: column;
+      }
     </style>
   </head>
   <body>
+    <div id="overlay">
+      <progress id="loadProgress" value="0" max="100"
+        ></progress>
+        <p id="labelProgress">Cargando: 0%</p>
+    </div>
     <div id="hud">Vel: 0 u/s<br />Throttle: 0%</div>
     <div id="help">
       ▲/▼: Pitch • ◀/▶: Roll • PageUp/PageDown: Throttle •
