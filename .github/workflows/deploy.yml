@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - master
+    paths-ignore:
+      - README.md
+      - showoff/**
   workflow_dispatch:
 
 permissions:
