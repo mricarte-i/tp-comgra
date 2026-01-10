@@ -12,7 +12,7 @@ The project is built using Three.js and Vite, and it showcases various computer 
 </p>
 
 <p align="center">
-  <img src="/showoff/8.png" width="30%" />
+  <img src="/showoff/7.png" width="30%" />
   <img src="/showoff/6.png" width="30%" /> 
   <img src="/showoff/5.png" width="30%" />
 </p>
@@ -27,7 +27,7 @@ The project is built using Three.js and Vite, and it showcases various computer 
 - **Mouse**: Orbit the camera around the scene (on the camera view modes that allow it).
 - **R**: Reset the scene.
 
-![](https://github.com/mricarte-i/tp-comgra/blob/master/showoff/7.png?raw=true)
+![](https://github.com/mricarte-i/tp-comgra/blob/master/showoff/8.png?raw=true)
 
 ## Local Installation
 1. Install dependencies
@@ -42,19 +42,19 @@ The project is built using Three.js and Vite, and it showcases various computer 
 
 ![](https://github.com/mricarte-i/tp-comgra/blob/master/showoff/4.png?raw=true)
 
-## Deploy to GitHub Pages (pages branch)
-- Configure Pages:
-    - In your repository on GitHub, go to Settings → Pages.
-    - Under “Build and deployment”, choose “Deploy from a branch”.
-    - Select branch `pages` and folder `/ (root)`, then Save.
+## Deploy to GitHub Pages (or how I keep forgetting that the repo name becomes a prod issue when I use './' everywhere)
+- Configure:
+    1. In your repo, go to Settings → Pages.
+    2. “Build and deployment” -> “Deploy from a branch”.
+    3. Select branch `pages` and folder `/ (root)`.
+    4. Save.
 - Automatic deployment:
-    - Push to `main` (or `master`) and GitHub Actions will:
-        - Install deps, run `vite build`, and push `dist/` to the `pages` branch.
-    - You can also trigger it manually from the Actions tab (workflow: “Build and Deploy (pages branch)”).
+    - Push to `main` (or `master`) and GitHub Actions will run `vite build`, and push `dist/` to the `pages` branch.
+- Or trigger it manually from the Actions tab in the repo (workflow: “Build and Deploy (pages branch)”).
 - Vite base path:
+    - Dev server remains unaffected (`pnpm dev` uses `base: './'`).
     - The workflow builds with `VITE_BASE=/tp-comgra/` so all asset URLs include the repo subpath.
     - For local builds targeting Pages, run:
         ```bash
         VITE_BASE=/tp-comgra/ pnpm run build
         ```
-    - Dev server remains unaffected (`pnpm dev` uses `base: './'`).
