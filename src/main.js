@@ -3,10 +3,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AirplaneController } from './airplaneController.js';
 import { AirplaneGeometry } from './airplaneModel.js';
 import { BaseScene } from './baseScene.js';
-import { createGround, createMenu } from './terrain.js';
+import { createGround } from './terrain.js';
 import { createAirport } from './createAirport.js';
 import { BoatModel } from './boat.js';
 import { CircleCurve3 } from './circleCurve.js';
+import { windWakerWaves, spawnExplosion } from './helpers/utils.js';
 
 // for handling keyboard events better
 const controls = {};
@@ -94,10 +95,10 @@ async function init() {
       orbitControls[i].enabled = i === mainCamera;
     }
   }
-  
+
   // dat gui menus
   //createMenu();
-  
+
   animate();
 }
 
@@ -140,6 +141,7 @@ function setupRendererAndScene() {
       'cameraRotation',
       JSON.stringify(camGral.rotation.toArray())
     );
+
     if (camGralControls && camGralControls.target) {
       localStorage.setItem(
         'controlsTarget',
@@ -151,10 +153,15 @@ function setupRendererAndScene() {
   const savedPosition = localStorage.getItem('cameraPosition');
   const savedRotation = localStorage.getItem('cameraRotation');
   const savedTarget = localStorage.getItem('controlsTarget');
-  if (savedPosition)
+
+  if (savedPosition) {
     camGral.position.fromArray(JSON.parse(savedPosition));
-  if (savedRotation)
+  }
+
+  if (savedRotation) {
     camGral.rotation.fromArray(JSON.parse(savedRotation));
+  }
+
   if (camGralControls && camGralControls.target && savedTarget) {
     camGralControls.target.fromArray(JSON.parse(savedTarget));
     camGralControls.update();
@@ -165,8 +172,8 @@ function setupRendererAndScene() {
 }
 
 let antennaLight;
-// createAirport has been moved to its own module (src/createAirport.js)
 
+let _waves, _cannonBall, _isShooting, _cannonBallVelocity;
 async function setupEnvironment() {
   // compute sun direction from effectController (same formulas used in BaseScene)
   const phi = THREE.MathUtils.degToRad(
@@ -191,37 +198,6 @@ async function setupEnvironment() {
   );
   ground.position.set(-5, -2, 0);
   scene.add(ground);
-
-  // simple stylized waves
-  function triangleGeo() {
-    const vertices = new Float32Array([
-      -1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0,
-    ]);
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute(
-      'position',
-      new THREE.BufferAttribute(vertices, 3)
-    );
-    return geometry;
-  }
-
-  function windWakerWaves() {
-    const wavesMat = new THREE.MeshPhongMaterial({
-      color: 0x55aaff,
-      side: THREE.DoubleSide,
-      transparent: true,
-      opacity: 0.6,
-      emissive: 0x66bbff,
-      emissiveIntensity: 0.3,
-    });
-    const group = new THREE.Group();
-    const m1 = new THREE.Mesh(triangleGeo(), wavesMat);
-    const m2 = new THREE.Mesh(triangleGeo(), wavesMat);
-    m1.rotation.set(Math.PI / 2, Math.PI / 4, Math.PI / 4);
-    m2.rotation.set(Math.PI / 2, -Math.PI / 4, -Math.PI / 4);
-    group.add(m1, m2);
-    return { group };
-  }
 
   const { group: wavesGroup } = windWakerWaves();
   wavesGroup.position.set(200, 1, 0);
@@ -256,16 +232,17 @@ async function setupEnvironment() {
   scene.add(cube);
 
   // expose for updateWindWakerWaves closure
-  setupEnvironment._waves = wavesGroup;
-  setupEnvironment._cannonBall = cannonBall;
-  setupEnvironment._isShooting = false;
-  setupEnvironment._cannonBallVelocity = new THREE.Vector3(
+  _waves = wavesGroup;
+  _cannonBall = cannonBall;
+  _isShooting = false;
+  _cannonBallVelocity = new THREE.Vector3(
     0,
     0,
     0
   );
 }
 
+let _spawn;
 function setupAirplane() {
   const res = AirplaneGeometry();
   airplane = res.airplane;
@@ -323,7 +300,7 @@ function setupAirplane() {
     throttle: 0,
   });
 
-  setupAirplane._spawn = airplaneSpawn;
+  _spawn = airplaneSpawn;
 }
 
 let turretEndHelper;
@@ -358,7 +335,6 @@ async function setupBoatAndBoatCameras() {
   camOrbitBoatControls.minDistance = 1.2;
   camOrbitBoatControls.maxDistance = 200;
   camOrbitBoatControls.enablePan = false;
-  setupBoatAndBoatCameras._orbitControls = camOrbitBoatControls;
 
   // chase cam (attached to boat)
   camChaseBoat = new THREE.PerspectiveCamera(
@@ -409,7 +385,9 @@ let axisHelper,
   mouse,
   hudEl,
   helpEl,
-  cockpit;
+  cockpit,
+  _path,
+  _pathTime;
 function setupHelpersAndUI() {
   // raycast axis helper
   raycaster = new THREE.Raycaster();
@@ -445,14 +423,14 @@ function setupHelpersAndUI() {
   }
   */
   // store path for boat movement updates
-  setupHelpersAndUI._path = path;
-  setupHelpersAndUI._pathTime = 0;
+  _path = path;
+  _pathTime = 0;
 }
 
 let helperLine;
 let lastSavedRaycastPoint = null;
 function setupEvents() {
-  // key controls
+  // key controls setup
   window.addEventListener('keydown', event => {
     controls[event.code] = true;
   });
@@ -472,6 +450,7 @@ function setupEvents() {
       scene.children
     );
     let closest = null;
+
     for (let i = 0; i < intersects.length; i++) {
       if (
         intersects[i].object !== axisHelper &&
@@ -480,6 +459,7 @@ function setupEvents() {
         closest = intersects[i];
       }
     }
+
     if (closest) {
       axisHelper.position.copy(closest.point);
       axisHelper.visible = true;
@@ -489,6 +469,7 @@ function setupEvents() {
       } else {
         //draw a line from lastSavedRaycastPoint to the current point
         if (lastSavedRaycastPoint) {
+          //remove previous line
           if (helperLine) {
             scene.remove(helperLine);
           }
@@ -513,14 +494,15 @@ function setupEvents() {
     if (e.code === 'KeyR') {
       // reset airplane to spawn
       controller.setTransform({
-        position: setupAirplane._spawn,
+        position: _spawn,
         euler: new THREE.Euler(0, 0, 0, 'YXZ'),
         throttle: 0,
       });
       camGral.position.set(250, 10, 0);
       camGral.lookAt(0, 0, 0);
-      setupHelpersAndUI._pathTime = 0;
+      _pathTime = 0;
     }
+
     if (e.code === 'KeyH') {
       console.log('helper at:', axisHelper.position);
     }
@@ -528,6 +510,7 @@ function setupEvents() {
     // switch cameras with number keys
     if (e.key >= '1' && e.key <= '8') {
       const idx = parseInt(e.key, 10) - 1;
+
       if (idx < cameras.length) {
         mainCamera = idx;
         // disable orbit controls for other cameras
@@ -540,6 +523,8 @@ function setupEvents() {
       } else {
         mainCamera = Math.min(idx, cameras.length - 1);
       }
+
+      // show/hide cockpit UI
       if (mainCamera === 2) {
         cockpit.style.display = 'block';
       } else {
@@ -552,19 +537,24 @@ function setupEvents() {
 function onResize() {
   const w = container.offsetWidth;
   const h = container.offsetHeight;
+
   for (let cam of cameras) {
     if (cam && cam.isPerspectiveCamera) {
       cam.aspect = w / h;
       cam.updateProjectionMatrix();
     }
   }
+
   renderer.setSize(w, h);
 }
 
 function updateHelp() {
-  if (!helpEl) return;
+  if (!helpEl) {
+    return;
+  }
+
   if (mainCamera === 1 || mainCamera === 2) {
-    helpEl.innerHTML = `▲/▼: Pitch • ◀/▶: Roll • PageUp/PageDown: Throttle • (mantené presionadas
+    helpEl.innerText = `▲/▼: Pitch • ◀/▶: Roll • PageUp/PageDown: Throttle • (mantené presionadas
         las flechas)<br />
         Consejo: subí throttle con PageUp y dale algo de roll para virar. <br />
         Presioná R para resetear. <br />
@@ -574,47 +564,49 @@ function updateHelp() {
     mainCamera === 5 ||
     mainCamera === 6
   ) {
-    helpEl.innerHTML = `Mouse: orbitar cámara • Rueda: zoom • Clic izquierdo: orbitar • Clic derecho: moverse  <br />
+    helpEl.innerText = `Mouse: orbitar cámara • Rueda: zoom • Clic izquierdo: orbitar • Clic derecho: moverse  <br />
         I/K: Pitch • J/L: Yaw • Espacio: disparar torreta • (mantené presionadas las flechas)<br />
         Presioná R para resetear. <br />
         1,2,3,4,5,6,7,8 para cambiar cámara. <br />`;
   } else {
-    helpEl.innerHTML = `Mouse: mover cámara • Rueda: zoom • Clic izquierdo: orbitar • Clic derecho: moverse  <br />
+    helpEl.innerText = `Mouse: mover cámara • Rueda: zoom • Clic izquierdo: orbitar • Clic derecho: moverse  <br />
         Presioná R para resetear. <br />
         1,2,3,4,5,6,7,8 para cambiar cámara. <br />`;
   }
 }
 
 function updateHUD() {
-  if (!hudEl) return;
+  if (!hudEl) {
+    return;
+  }
+
   const s = controller.getStatus();
-  hudEl.innerHTML =
+  hudEl.innerText =
     `Vel: ${s.speed.toFixed(1)} u/s<br>` +
     `Throttle: ${(controller.getEnginePower() * 100) | 0}%<br>` +
     `Pitch/Bank: ${s.pitchDeg.toFixed(0)}° / ${s.bankDeg.toFixed(
       0
     )}°<br>` +
-    `Raycast: ${
-      axisHelper.visible
-        ? `x:${axisHelper.position.x.toFixed(
-            1
-          )} y:${axisHelper.position.y.toFixed(
-            1
-          )} z:${axisHelper.position.z.toFixed(1)}`
-        : '---'
+    `Raycast: ${axisHelper.visible
+      ? `x:${axisHelper.position.x.toFixed(
+        1
+      )} y:${axisHelper.position.y.toFixed(
+        1
+      )} z:${axisHelper.position.z.toFixed(1)}`
+      : '---'
     }<br>`;
+  
   if (
     lastSavedRaycastPoint &&
     (controls['ShiftLeft'] || controls['ShiftRight'])
   ) {
-    hudEl.innerHTML += `Distance: ${lastSavedRaycastPoint
+    hudEl.innerText += `Distance: ${lastSavedRaycastPoint
       .distanceTo(axisHelper.position)
       .toFixed(1)} u<br>`;
   }
 }
 
 function updateWindWakerWaves(time) {
-  const waves = setupEnvironment._waves;
   const dist = airplane.position.distanceTo(water.position);
   const speed = controller.getStatus().speed;
   const scale = Math.min(
@@ -623,25 +615,25 @@ function updateWindWakerWaves(time) {
   );
   const waveMotion =
     0.75 + 0.25 * Math.sin(time * 3 + speed * 0.5);
-  waves.position.set(
+  _waves.position.set(
     airplane.position.x,
     water.position.y,
     airplane.position.z
   );
-  waves.quaternion.copy(airplane.quaternion);
-  waves.scale.setScalar(scale * waveMotion);
+  _waves.quaternion.copy(airplane.quaternion);
+  _waves.scale.setScalar(scale * waveMotion);
 }
 
 function updateBoat(dt) {
-  const path = setupHelpersAndUI._path;
-  setupHelpersAndUI._pathTime += dt;
+  _pathTime += dt;
   const speed = 0.01;
-  const t = (setupHelpersAndUI._pathTime * speed) % 1;
-  const position = path.getPointAt(t);
+  const t = (_pathTime * speed) % 1;
+  const position = _path.getPointAt(t);
   boat.position.copy(position);
 
-  const tangent = path.getTangentAt(t).clone();
+  const tangent = _path.getTangentAt(t).clone();
   tangent.y = 0;
+
   if (tangent.lengthSq() > 1e-6) {
     tangent.normalize();
     const modelForward = new THREE.Vector3(0, 0, 1);
@@ -652,6 +644,7 @@ function updateBoat(dt) {
     boat.quaternion.copy(q);
   }
 }
+
 function updateBoatChaseCam() {
   camOrbitBoatControls.update();
   const tmpSph = new THREE.Spherical();
@@ -679,32 +672,21 @@ function updateBoatChaseCam() {
 
 const explosionDuration = 1; // seconds
 let explosions = [];
-function spawnExplosion(position, startTime) {
-  const geo = new THREE.SphereGeometry(0.1, 16, 16);
-  const mat = new THREE.MeshPhongMaterial({
-    color: 0xffaa00,
-    transparent: true,
-    opacity: 1,
-    emissive: 0xff6600,
-    emissiveIntensity: 12,
-  });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.copy(position);
-  scene.add(mesh);
-  explosions.push({ mesh, mat, geo, startTime });
-}
+
 
 const gravityForce = -9.81;
 const shotForce = 90;
 let initialShotPos = null;
+
 function turretShooting(dt) {
-  if (!cannon || !turretEndHelper) return;
-  const cannonBall = setupEnvironment._cannonBall;
-  const velocity = setupEnvironment._cannonBallVelocity;
+  if (!cannon || !turretEndHelper) {
+    return;
+  }
+
   const g = new THREE.Vector3(0, gravityForce, 0); // gravity
 
   // Fire cannon
-  if (controls['Space'] && !setupEnvironment._isShooting) {
+  if (controls['Space'] && !_isShooting) {
     const worldPos = new THREE.Vector3();
     turretEndHelper.getWorldPosition(worldPos);
     initialShotPos = worldPos.clone();
@@ -714,24 +696,26 @@ function turretShooting(dt) {
       cannon.getWorldQuaternion(new THREE.Quaternion())
     );
     const initialSpeed = shotForce; // tweak as needed
-    velocity.copy(forward).multiplyScalar(initialSpeed);
-    setupEnvironment._isShooting = true;
+    _cannonBallVelocity.copy(forward).multiplyScalar(initialSpeed);
+    _isShooting = true;
   }
 
   // v(t+dt) = v(t) + g * dt
   // p(t+dt) = p(t) + v(t+dt) * dt
-  if (setupEnvironment._isShooting) {
+  if (_isShooting) {
     // raycast along velocity for collisions within this timestep
-    const travelDist = velocity.length() * dt;
+    const travelDist = _cannonBallVelocity.length() * dt;
+
     if (travelDist > 1e-6) {
-      const origin = cannonBall.position.clone();
-      const dir = velocity.clone().normalize();
+      const origin = _cannonBall.position.clone();
+      const dir = _cannonBallVelocity.clone().normalize();
       cannonRaycaster.set(origin, dir);
       // check all scene objects (true = recursive)
       // and ignore the cannonBall itself
       const intersects = cannonRaycaster
         .intersectObjects(scene.children, true)
         .filter(i => i.object !== cannonBall);
+
       if (intersects.length > 0) {
         const hit = intersects.find(
           i => i.distance <= travelDist + 0.01
@@ -742,9 +726,9 @@ function turretShooting(dt) {
           console.log('Cannonball hit!\nDistance:', distance);
 
           spawnExplosion(hit.point, clock.elapsedTime);
-          cannonBall.position.copy(hit.point);
-          setupEnvironment._isShooting = false;
-          velocity.set(0, 0, 0);
+          _cannonBall.position.copy(hit.point);
+          _isShooting = false;
+          _cannonBallVelocity.set(0, 0, 0);
           return;
         }
       }
@@ -754,24 +738,26 @@ function turretShooting(dt) {
     // v(t+dt) = v(t) + g * dt
     const vNew = velocity.clone().addScaledVector(g, dt);
     // p(t+dt) = p(t) + v(t+dt) * dt
-    cannonBall.position.addScaledVector(vNew, dt);
+    _cannonBall.position.addScaledVector(vNew, dt);
     // store updated velocity
-    velocity.copy(vNew);
+    _cannonBallVelocity.copy(vNew);
 
     // stop when underwater and reset
-    if (cannonBall.position.y <= -2) {
-      cannonBall.position.y = -1;
-      setupEnvironment._isShooting = false;
-      velocity.set(0, 0, 0);
+    if (_cannonBall.position.y <= -2) {
+      _cannonBall.position.y = -1;
+      _isShooting = false;
+      _cannonBallVelocity.set(0, 0, 0);
     }
   }
 }
 
 const explosionMaxScale = 100;
+
 function updateExplosions(now) {
   for (let i = explosions.length - 1; i >= 0; i--) {
     const exp = explosions[i];
     const elapsed = now - exp.startTime;
+
     if (elapsed >= explosionDuration) {
       // remove explosion
       scene.remove(exp.mesh);
@@ -782,6 +768,7 @@ function updateExplosions(now) {
       // update size and opacity
       const t = elapsed / explosionDuration;
       let scale, opacity;
+
       if (t < 0.5) {
         // expanding
         scale = THREE.MathUtils.lerp(
@@ -799,6 +786,7 @@ function updateExplosions(now) {
         );
         opacity = THREE.MathUtils.lerp(0.5, 0, (t - 0.5) * 2);
       }
+
       exp.mesh.scale.setScalar(scale);
       exp.mat.opacity = opacity;
     }
@@ -831,10 +819,10 @@ function animate() {
     mainCamera === 4
       ? 0xff0000
       : mainCamera === 5
-      ? 0x00ff00
-      : mainCamera === 6
-      ? 0x0000ff
-      : 0xffffff
+        ? 0x00ff00
+        : mainCamera === 6
+          ? 0x0000ff
+          : 0xffffff
   );
   updateWindWakerWaves(clock.elapsedTime);
 
