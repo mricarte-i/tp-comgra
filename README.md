@@ -1,11 +1,21 @@
 # 72.58 - Computacion Grafica
 
-![](https://github.com/mricarte-i/tp-comgra/blob/master/showoff/1.png?raw=true)
-
 
 This repository contains the code for the 72.58 - Computacion Grafica course project. Code for the *Airplane Controller* and *Procedural Textured Shaders* were given as starter code by the course staff at the [cg7258 repository](https://github.com/fedemarino31/cg7258).
 
 The project is built using Three.js and Vite, and it showcases various computer graphics techniques, such as *texture mapping*, *lighting*, *procedural mesh generation*, and more.
+
+<p align="center">
+  <img src="/showoff/2.png" width="30%" />
+  <img src="/showoff/3.png" width="30%" /> 
+  <img src="/showoff/1.png" width="30%" />
+</p>
+
+<p align="center">
+  <img src="/showoff/8.png" width="30%" />
+  <img src="/showoff/6.png" width="30%" /> 
+  <img src="/showoff/5.png" width="30%" />
+</p>
 
 ## Controls
 - **1 - 8**: Change the camera view.
@@ -17,6 +27,8 @@ The project is built using Three.js and Vite, and it showcases various computer 
 - **Mouse**: Orbit the camera around the scene (on the camera view modes that allow it).
 - **R**: Reset the scene.
 
+![](https://github.com/mricarte-i/tp-comgra/blob/master/showoff/7.png?raw=true)
+
 ## Local Installation
 1. Install dependencies
     ```bash
@@ -27,6 +39,8 @@ The project is built using Three.js and Vite, and it showcases various computer 
     pnpm run dev
     ```
 3. Open your browser and go to `http://localhost:10001`
+
+![](https://github.com/mricarte-i/tp-comgra/blob/master/showoff/4.png?raw=true)
 
 ## Deploy to GitHub Pages (pages branch)
 - Configure Pages:
