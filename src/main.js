@@ -754,7 +754,7 @@ function turretShooting(dt) {
     const worldPos = new THREE.Vector3();
     turretEndHelper.getWorldPosition(worldPos);
     initialShotPos = worldPos.clone();
-    cannonBall.position.copy(worldPos);
+    _cannonBall.position.copy(worldPos);
     // initial direction: local (0,1,0) in cannon space (matches previous code)
     const forward = new THREE.Vector3(0, 1, 0).applyQuaternion(
       cannon.getWorldQuaternion(new THREE.Quaternion())
@@ -778,7 +778,7 @@ function turretShooting(dt) {
       // and ignore the cannonBall itself
       const intersects = cannonRaycaster
         .intersectObjects(scene.children, true)
-        .filter(i => i.object !== cannonBall);
+        .filter(i => i.object !== _cannonBall);
 
       if (intersects.length > 0) {
         const hit = intersects.find(
@@ -789,7 +789,12 @@ function turretShooting(dt) {
           const distance = hit.point.distanceTo(initialShotPos);
           console.log('Cannonball hit!\nDistance:', distance);
 
-          spawnExplosion(hit.point, clock.elapsedTime);
+          spawnExplosion(
+            scene,
+            explosions,
+            hit.point,
+            clock.elapsedTime
+          );
           _cannonBall.position.copy(hit.point);
           _isShooting = false;
           _cannonBallVelocity.set(0, 0, 0);
@@ -800,7 +805,7 @@ function turretShooting(dt) {
 
     // advance cannonball physics
     // v(t+dt) = v(t) + g * dt
-    const vNew = velocity.clone().addScaledVector(g, dt);
+    const vNew = _cannonBallVelocity.clone().addScaledVector(g, dt);
     // p(t+dt) = p(t) + v(t+dt) * dt
     _cannonBall.position.addScaledVector(vNew, dt);
     // store updated velocity

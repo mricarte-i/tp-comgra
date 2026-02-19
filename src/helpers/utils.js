@@ -31,7 +31,7 @@ export function windWakerWaves() {
   return { group };
 }
 
-export function spawnExplosion(position, startTime) {
+export function spawnExplosion(scene, explosions, position, startTime) {
   const geo = new THREE.SphereGeometry(0.1, 16, 16);
   const mat = new THREE.MeshPhongMaterial({
     color: 0xffaa00,
