@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { AirplaneController } from './airplaneController.js';
 import { AirplaneGeometry } from './airplaneModel.js';
-import { BaseScene } from './baseScene.js';
+import { AddBlenderHead, AddDagum, BaseScene } from './baseScene.js';
 import { createGround } from './terrain.js';
 import { createAirport } from './createAirport.js';
 import { BoatModel } from './boat.js';
@@ -69,8 +69,9 @@ async function init() {
   const promises = [
     setupEnvironment(),
     setupAirplane(),
+    AddBlenderHead(scene),
+    AddDagum(scene),
     setupBoatAndBoatCameras(),
-    finalSetup(),
   ];
   const overallCount = promises.length;
 
@@ -87,8 +88,9 @@ async function init() {
         labelProgress.innerHTML = `Cargando: ${percent}%`;
       })
     )
-  ).then(() => {
+  ).then(async () => {
     // all done
+    await finalSetup();
 
     // Define keyframes (an array of objects)
     const keyframes = [
@@ -290,6 +292,7 @@ async function setupEnvironment() {
   );
 
   return new Promise((resolve) => {
+    console.log('Environment setup complete', 'cameras 6, 7 and 8 are tower orbit, runway orbit, and runway cams');
     resolve(0);
   });
 }
@@ -354,6 +357,7 @@ function setupAirplane() {
 
   _spawn = airplaneSpawn;
   return new Promise((resolve) => {
+    console.log('Airplane setup complete', 'cameras 2 and 3 are chase and cockpit');
     resolve(1);
   });
 }
@@ -434,6 +438,7 @@ async function setupBoatAndBoatCameras() {
   turretEndHelper.position.set(0, 8, 0);
 
   return new Promise((resolve) => {
+    console.log('Boat and boat cameras setup complete', 'cameras 3,4,5 are orbit, chase, and turret cams');
     resolve(2);
   });
 }

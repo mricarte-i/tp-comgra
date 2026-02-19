@@ -2,7 +2,68 @@ import * as THREE from 'three';
 //import { Sky } from 'three/addons/objects/Sky.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { Water } from 'three/examples/jsm/objects/Water.js';
+import { FBXLoader } from "three/examples/jsm/Addons.js";
 import * as dat from 'dat.gui';
+
+export function AddDagum(scene) {
+  const loader = new FBXLoader();
+  const normalMaterial = new THREE.MeshNormalMaterial();
+  return new Promise((resolve, reject) => {
+    loader.load(
+      `${import.meta.env.BASE_URL}dagum.fbx`,
+      (object) => {
+        object.scale.set(0.01, 0.01, 0.01);
+        object.position.set(-0.8, 26.7, -19);
+
+        object.traverse((child) => {
+          if (child.isMesh) {
+            child.material = normalMaterial;
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        scene.add(object);
+        resolve(object);
+      },
+      undefined,
+      (error) => {
+        console.log(error);
+        reject(error);
+      }
+    );
+  });
+}
+
+export function AddBlenderHead(scene) {
+  const loader = new FBXLoader();
+  const normalMaterial = new THREE.MeshNormalMaterial();
+  return new Promise((resolve, reject) => {
+    loader.load(
+      `${import.meta.env.BASE_URL}blender-head.fbx`,
+      (object) => {
+        object.scale.set(0.01, 0.01, 0.01);
+        object.position.set(153, -0.5, 70);
+
+        object.traverse((child) => {
+          if (child.isMesh) {
+            child.material = normalMaterial;
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        scene.add(object);
+        resolve(object);
+      },
+      undefined,
+      (error) => {
+        console.log(error);
+        reject(error);
+      }
+    );
+  });
+}
 
 export function BaseScene(
   scene,
@@ -159,7 +220,7 @@ export function BaseScene(
   light.shadowCameraTop = 0.5;
   light.shadowCameraBottom = -0.5;
   */
- 
+
   scene.add(light);
 
   const water = new Water(
